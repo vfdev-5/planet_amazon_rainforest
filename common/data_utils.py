@@ -64,7 +64,63 @@ if os.path.exists(enc_df_path):
 else:
     TRAIN_ENC_CSV = encode_tags(TRAIN_CSV)
     TRAIN_ENC_CSV.to_csv(enc_df_path, index=False)
-    
+
+
+equalized_data_classes = {0: ['selective_logging',
+                              'slash_burn',
+                              'blow_down',
+                              'blooming',
+                              'conventional_mine',
+                              'artisinal_mine'],
+                          1: ['bare_ground'],
+                          2: ['haze',
+                              'water',
+                              'partly_cloudy',
+                              'cultivation',
+                              'road',
+                              'habitation',
+                              'cloudy'],
+                          3: ['agriculture'],
+                          4: ['primary', 'clear']
+}
+
+
+def create_data_class(k, row):
+    tags = row.split(' ')
+    ret = set(tags) & set(equalized_data_classes[k])
+    if len(ret) > 0:
+        return 1
+    return 0
+
+
+def create_image_id(image_name):
+    return image_name[6:]
+
+
+enc_cl_df_path = os.path.join(GENERATED_DATA, "train_enc_cl.csv")
+if os.path.exists(enc_cl_df_path):
+    TRAIN_ENC_CL_CSV = pd.read_csv(enc_cl_df_path)
+else:
+    TRAIN_ENC_CL_CSV = TRAIN_ENC_CSV.copy()
+    for i in equalized_data_classes:
+        TRAIN_ENC_CL_CSV['class_%i' % i] = TRAIN_ENC_CSV['tags'].apply(lambda x: create_data_class(i, x))
+
+    TRAIN_ENC_CL_CSV["image_id"] = TRAIN_ENC_CSV["image_name"].apply(create_image_id)
+    TRAIN_ENC_CL_CSV.to_csv(enc_cl_df_path, index=False)
+
+
+def get_id_type_list_for_class(class_index):
+    df = TRAIN_ENC_CL_CSV[TRAIN_ENC_CL_CSV['class_%i' % class_index] == 1]
+    return get_id_type_list_from_df(df)
+
+
+def get_id_type_list_from_df(df):
+    return [(str(image_id), "Train_jpg") for image_id in df['image_id'].values]
+
+
+def to_set(id_type_list):
+    return set([(i[0], i[1]) for i in id_type_list])
+
 
 def get_filename(image_id, image_type):
     """
@@ -90,8 +146,47 @@ def get_filename(image_id, image_type):
 
 
 def get_caption(image_id, image_type):
-    assert "Train" in image_type, "Can get only train labels"
+    assert "Train" in image_type, "Can get only train caption"
     return TRAIN_CSV.loc[int(image_id), 'tags']
+
+
+def get_label(image_id, image_type, as_series=False):
+    assert "Train" in image_type, "Can get only train labels"
+    if as_series:
+        return TRAIN_ENC_CSV.loc[int(image_id), unique_tags]
+    return TRAIN_ENC_CSV.loc[int(image_id), unique_tags].values
+
+
+def get_class_label_mask(class_index):
+    out = np.zeros(len(unique_tags), dtype=np.uint8)
+    for name in equalized_data_classes[class_index]:
+        out[unique_tags.index(name)] = 1
+    return out
+
+
+def find_best_weights_file(weights_files, field_name='val_loss', best_min=True):
+
+    if best_min:
+        best_value = 1e5
+        comp = lambda a, b: a > b
+    else:
+        best_value = -1e5
+        comp = lambda a, b: a < b
+
+    if '=' != field_name[-1]:
+        field_name += '='
+
+    best_weights_filename = ""
+    for f in weights_files:
+        index = f.find(field_name)
+        index += len(field_name)
+        assert index >= 0, "Field name '%s' is not found in '%s'" % (field_name, f)
+        end = f.find('_', index)
+        val = float(f[index:end])
+        if comp(best_value, val):
+            best_value = val
+            best_weights_filename = f
+    return best_weights_filename, best_value
 
 
 class DataCache(object):
