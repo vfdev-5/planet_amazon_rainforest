@@ -76,14 +76,14 @@ try:
             print("Load cache from pickle file")
             cache = load_data_cache(cache_filepath)
         else:
-            cache = DataCache(10000)
+            cache = DataCache(0)
 except NameError:
     cache_filepath = os.path.join(GENERATED_DATA, 'data_cache.pkl')
     if os.path.exists(cache_filepath):
         print("Load cache from pickle file")
         cache = load_data_cache(cache_filepath)
     else:
-        cache = DataCache(10000)
+        cache = DataCache(0)
 
 
 # In[ ]:
@@ -133,7 +133,7 @@ params['n_classes'] = len(unique_tags)
 
 n_folds = 5
 val_fold_index = 0
-val_fold_indices = [1, 2, 3, 4]
+val_fold_indices = []
 hists = []
 
 kf = KFold(n_splits=n_folds, shuffle=True, random_state=params['seed'])
@@ -145,9 +145,10 @@ for train_index, test_index in kf.split(trainval_id_type_list):
         if val_fold_index not in val_fold_indices:
             val_fold_index += 1
             continue
-        
-    print("\n\n ---- Validation fold index: ", val_fold_index, "/", n_folds)
+
     val_fold_index += 1
+    print("\n\n ---- Validation fold index: ", val_fold_index, "/", n_folds)
+
 
     print(len(train_id_type_list), len(val_id_type_list))
     assert len(to_set(train_id_type_list) & to_set(val_id_type_list)) == 0, "WTF"
@@ -188,12 +189,12 @@ n_runs = 1
 n_folds = 5
 run_counter = 0
 cv_mean_scores = np.zeros((n_runs, n_folds))
-val_fold_indices = [1, 2, 3, 4]
+val_fold_indices = []
 
 # In[11]:
 
 
-while run_counter < n_runs:    
+while run_counter < n_runs:
     run_counter += 1
     print("\n\n ---- New run : ", run_counter, "/", n_runs)
     val_fold_index = 0

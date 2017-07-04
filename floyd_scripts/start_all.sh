@@ -4,6 +4,20 @@ echo "----------- Run all scripts -----------"
 
 export ROOT=/output/planet_amazon_rainforest
 
-sh 0_init_sources.sh
+echo "\n - 0 - Clone sources"
 
-sh 1_start_training.sh
+git clone --recursive https://github.com/vfdev-5/planet_amazon_rainforest $ROOT
+
+echo "\n -- Finished Clone sources"
+
+echo "\n - 1 - Start training"
+
+export INPUT_PATH="/input"
+export OUTPUT_PATH="/output"
+
+cd $ROOT
+
+python scripts/squeezenet_multilabel_classification_all_classes.py
+
+
+echo "\n Finished training"
