@@ -1,9 +1,9 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
 echo "----------- Run all scripts -----------"
 
 export ROOT=/output/planet_amazon_rainforest
 
-bash 0_init_sources.bash
+sh 0_init_sources.sh
 
-bash 1_start_training.bash
+sh 1_start_training.sh
