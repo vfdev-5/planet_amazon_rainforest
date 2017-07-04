@@ -79,8 +79,9 @@ def image_label_provider(image_id_type_list,
                          channels_first=True,
                          test_mode=False,
                          seed=None,
+                         cache=None,
                          with_label=True,
-                         verbose=0):
+                         verbose=0, **kwargs):
 
     if seed is not None:
         np.random.seed(seed)
@@ -93,22 +94,41 @@ def image_label_provider(image_id_type_list,
             if verbose > 0:
                 print("Image id/type:", image_id, image_type, "| counter=", i)
 
-            if verbose > 0:
-                print("-- Load from disk")
+            key = (image_id, image_type)
+            if cache is not None and key in cache:
+                if verbose > 0:
+                    print("-- Load from RAM")
+                img, label = cache.get(key)
 
-            img = get_image_data(image_id, image_type)
-
-            if img.shape[:2] != image_size:
-                img = cv2.resize(img, dsize=image_size)
-            if channels_first:
-                img = img.transpose([2, 0, 1])
-
-            img = img.astype(np.float32) / 255.0
-
-            if with_label:
-                label = get_label(image_id, image_type)
+                if channels_first:
+                    if img.shape[1:] != image_size[::-1]:
+                        img = img.transpose([1, 2, 0])
+                        img = cv2.resize(img, dsize=image_size[::-1])
+                        img = img.transpose([2, 0, 1])
+                else:
+                    if img.shape[:2] != image_size[::-1]:
+                        img = cv2.resize(img, dsize=image_size[::-1])
             else:
-                label = None
+
+                if verbose > 0:
+                    print("-- Load from disk")
+
+                img = get_image_data(image_id, image_type)
+
+                if img.shape[:2] != image_size:
+                    img = cv2.resize(img, dsize=image_size)
+                if channels_first:
+                    img = img.transpose([2, 0, 1])
+
+                img = img.astype(np.float32) / 255.0
+
+                if with_label:
+                    label = get_label(image_id, image_type)
+                else:
+                    label = None
+                # fill the cache only at first time:
+                if counter == 0:
+                    cache.put(key, (img, label))
 
             if test_mode:
                 yield img, label, (image_id, image_type)

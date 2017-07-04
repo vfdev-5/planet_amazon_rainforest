@@ -18,29 +18,34 @@ def get_squeezenet(input_shape, n_classes, optimizer='', lr=0.01, loss='', weigh
     """
     """
 
-    names_to_train = [
-        'fire5/squeeze1x1', 'fire5/expand1x1', 'fire5/expand3x3',
-        'fire6/squeeze1x1', 'fire6/expand1x1', 'fire6/expand3x3',
-        'fire7/squeeze1x1', 'fire7/expand1x1', 'fire7/expand3x3',
-        'fire8/squeeze1x1', 'fire8/expand1x1', 'fire8/expand3x3',
-        'fire9/squeeze1x1', 'fire9/expand1x1', 'fire9/expand3x3',
-        'conv10',
-    ]
+    # names_to_train = [
+    #     'fire5/squeeze1x1', 'fire5/expand1x1', 'fire5/expand3x3',
+    #     'fire6/squeeze1x1', 'fire6/expand1x1', 'fire6/expand3x3',
+    #     'fire7/squeeze1x1', 'fire7/expand1x1', 'fire7/expand3x3',
+    #     'fire8/squeeze1x1', 'fire8/expand1x1', 'fire8/expand3x3',
+    #     'fire9/squeeze1x1', 'fire9/expand1x1', 'fire9/expand3x3',
+    #     'conv10',
+    # ]
 
     snet = SqueezeNet(input_shape=input_shape, classes=n_classes, include_top=False, weights=weights)
 
     x = snet.outputs[0]
     x = GlobalAveragePooling2D()(x)
+
     # Use relu activation in the end to have all-zero probas
-    out = Activation('relu', name='loss')(x)
+    # x = Activation('relu', name='loss_1')(x)
+    # Rescale between 0 -> 0 and large -> 1 
+    # out = Activation('tanh', name='loss_2')(x)
+
+    out = Activation('sigmoid', name='loss')(x)
     model = Model(inputs=snet.inputs, outputs=out)
 
     # Set some layers trainable
-    for layer in model.layers:
-        if layer.name in names_to_train:
-            layer.trainable = True
-        else:
-            layer.trainable = False
+    # for layer in model.layers:
+    #     if layer.name in names_to_train:
+    #         layer.trainable = True
+    #     else:
+    #         layer.trainable = False
 
     model.name = "SqueezeNet"
 
