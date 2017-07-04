@@ -1,5 +1,5 @@
 import keras.backend as K
-
+from keras.losses import categorical_crossentropy, mae
 
 def jaccard_loss(y_true, y_pred):
     return 1.0 - jaccard_index(y_true, y_pred)
@@ -20,6 +20,12 @@ def jaccard_int_index(y_true, y_pred):
     sum_ = K.sum(y_true + y_pred, axis=[0, -1, -2])
     jac = (intersection + smooth) / (sum_ - intersection + smooth)
     return K.mean(jac)
+
+
+def categorical_crossentropy_with_mae(y_true, y_pred):
+    l1 = categorical_crossentropy(y_true, y_pred)
+    l2 = mae(y_true, y_pred)
+    return l1 + l2
 
 
 def precision(y_true, y_pred):

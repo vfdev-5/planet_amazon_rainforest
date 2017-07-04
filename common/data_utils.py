@@ -11,13 +11,12 @@ if 'INPUT_PATH' in os.environ:
 else:
     INPUT_PATH = os.path.abspath("../input")
 
-DATA_PATH = INPUT_PATH
-
 if 'OUTPUT_PATH' in os.environ:
     OUTPUT_PATH = os.environ['OUTPUT_PATH']
 else:
     OUTPUT_PATH = os.path.abspath("../output")
 
+DATA_PATH = INPUT_PATH
 TRAIN_DATA = os.path.join(DATA_PATH, "train")
 TEST_DATA = os.path.join(DATA_PATH, "test")
 TRAIN_CSV_FILEPATH = os.path.join(DATA_PATH, "train_v2.csv")

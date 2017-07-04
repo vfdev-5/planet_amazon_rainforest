@@ -1,8 +1,9 @@
 # Created by https://www.gitignore.io/api/python, and modified...
 
 ## Custom ignores
-input/
-results/*
+/input
+/output
+/results/*
 *.lmdb
 *.binproto
 *.binaryproto

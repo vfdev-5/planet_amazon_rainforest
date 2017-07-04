@@ -1,4 +1,4 @@
-# Train finetunned SqueezeNet model for multi-label classification
+# # Train finetunned SqueezeNet 2 model for multi-label classification
 
 
 import os
@@ -23,7 +23,7 @@ from training_utils import classification_train as train, classification_validat
 from training_utils import exp_decay, step_decay
 
 
-from models.squeezenet_multiclassification import get_squeezenet
+from models.squeezenet_multiclassification import get_squeezenet2
 
 
 from sklearn.model_selection import KFold
@@ -34,7 +34,7 @@ from data_utils import find_best_weights_file, get_label
 from xy_providers import image_label_provider
 
 
-cnn = get_squeezenet((256, 256, 3), 17)
+cnn = get_squeezenet2((256, 256, 3), 17)
 cnn.summary()
 
 
@@ -78,7 +78,7 @@ params = {
 
     'xy_provider': image_label_provider,
 
-
+    'network': get_squeezenet2,
     'optimizer': 'adadelta',
     'loss': 'categorical_crossentropy',
     'nb_epochs': 100,

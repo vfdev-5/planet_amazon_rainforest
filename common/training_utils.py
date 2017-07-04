@@ -232,7 +232,7 @@ def classification_train(model,
     metrics_names = list(model.metrics_names)
     metrics_names.remove('loss')
     for mname in metrics_names:
-        weights_filename += "_%s={%s:.4f}" % (mname, mname)
+        weights_filename += "_val_%s={val_%s:.4f}" % (mname, mname)
     weights_filename += ".h5"
 
     model_checkpoint = ModelCheckpoint(weights_filename, monitor='val_loss',
