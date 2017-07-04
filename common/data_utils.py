@@ -6,7 +6,10 @@ import numpy as np
 
 project_common_path = os.path.dirname(__file__)
 
-DATA_PATH = os.path.abspath("../input")
+if 'INPUT_PATH' in os.environ:
+    DATA_PATH = os.environ['INPUT_PATH']
+else:
+    DATA_PATH = os.path.abspath("../input")
 INPUT_PATH = DATA_PATH
 
 

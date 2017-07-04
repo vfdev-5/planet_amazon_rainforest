@@ -1,0 +1,9 @@
+[submodule "common/KerasContrib"]
+	path = common/KerasContrib
+	url = https://github.com/vfdev-5/keras-contrib
+[submodule "common/imgaug"]
+	path = common/imgaug
+	url = https://github.com/aleju/imgaug.git
+[submodule "common/models/KerasSqueezeNet"]
+	path = common/models/KerasSqueezeNet
+	url = https://github.com/vfdev-5/keras-squeezenet

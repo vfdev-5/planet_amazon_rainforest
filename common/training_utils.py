@@ -221,7 +221,8 @@ def classification_train(model,
     samples_per_epoch = (samples_per_epoch // batch_size + 1) * batch_size
     nb_val_samples = (nb_val_samples // batch_size + 1) * batch_size
 
-    weights_path = os.path.join(GENERATED_DATA, "weights")
+    output_path = params['output_path'] if 'output_path' in params else GENERATED_DATA
+    weights_path = os.path.join(output_path, "weights")
     if not os.path.exists(weights_path):
         os.mkdir(weights_path)
 
@@ -242,7 +243,6 @@ def classification_train(model,
 
     write_info(info_filename, **params)
 
-    weights_path = os.path.join(GENERATED_DATA, "weights")
     csv_logger = CSVLogger(os.path.join(weights_path,
                                         'training_%s_%s.log' % (save_prefix, str(now.strftime("%Y-%m-%d-%H-%M")))))
 
