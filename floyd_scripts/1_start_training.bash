@@ -2,7 +2,8 @@
 
 echo "\n - 1 - Start training"
 
-
+export INPUT_DATA="/input"
+export OUTPUT_DATA="/output"
 
 pushd $ROOT
 

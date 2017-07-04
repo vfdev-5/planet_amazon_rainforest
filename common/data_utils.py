@@ -7,16 +7,21 @@ import numpy as np
 project_common_path = os.path.dirname(__file__)
 
 if 'INPUT_PATH' in os.environ:
-    DATA_PATH = os.environ['INPUT_PATH']
+    INPUT_PATH = os.environ['INPUT_PATH']
 else:
-    DATA_PATH = os.path.abspath("../input")
-INPUT_PATH = DATA_PATH
+    INPUT_PATH = os.path.abspath("../input")
 
+DATA_PATH = INPUT_PATH
+
+if 'OUTPUT_PATH' in os.environ:
+    OUTPUT_PATH = os.environ['OUTPUT_PATH']
+else:
+    OUTPUT_PATH = os.path.abspath("../output")
 
 TRAIN_DATA = os.path.join(DATA_PATH, "train")
 TEST_DATA = os.path.join(DATA_PATH, "test")
 TRAIN_CSV_FILEPATH = os.path.join(DATA_PATH, "train_v2.csv")
-GENERATED_DATA = os.path.join(INPUT_PATH, 'generated')
+GENERATED_DATA = os.path.join(OUTPUT_PATH, 'generated')
 
 if not os.path.exists(GENERATED_DATA):
     os.makedirs(GENERATED_DATA)

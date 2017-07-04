@@ -2,9 +2,8 @@
 
 echo "----------- Run all scripts -----------"
 
-export ROOT=planet_amazon_rainforest
-export DATA_PATH=/input
+export ROOT=/output/planet_amazon_rainforest
 
-sh 0_init_sources.sh
+bash 0_init_sources.bash
 
-sh 1_start_training.sh
+bash 1_start_training.bash
