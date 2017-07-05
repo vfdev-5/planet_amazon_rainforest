@@ -25,13 +25,20 @@ GENERATED_DATA = os.path.join(OUTPUT_PATH, 'generated')
 if not os.path.exists(GENERATED_DATA):
     os.makedirs(GENERATED_DATA)
 
+assert os.path.isfile(TRAIN_CSV_FILEPATH), "File %s is not found" % TRAIN_CSV_FILEPATH
 TRAIN_CSV = pd.read_csv(TRAIN_CSV_FILEPATH)
 
 train_jpg_files = glob(os.path.join(TRAIN_DATA, "jpg", "*.jpg"))
 train_jpg_ids = [s[len(os.path.join(TRAIN_DATA, "jpg"))+1+len('train_'):-4] for s in train_jpg_files]
 
+if len(train_jpg_files) == 0:
+    print("No trainined data found at %s " % TRAIN_DATA)
+
 test_jpg_files = glob(os.path.join(TEST_DATA, "jpg", "*.jpg"))
 test_jpg_ids = [s[len(os.path.join(TEST_DATA, "jpg"))+1+len('test_'):-4] for s in test_jpg_files]
+
+if len(test_jpg_ids) == 0:
+    print("No data found at %s " % TEST_DATA)
 
 
 def get_unique_tags(df):

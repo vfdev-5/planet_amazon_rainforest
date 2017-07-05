@@ -4,10 +4,10 @@ import sys
 
 current_path = os.path.abspath(os.path.dirname(__file__))
 densenet_path = os.path.abspath(os.path.join(current_path, 'KerasDenseNet'))
-if squeezenet_path not in sys.path:
-    sys.path.append(squeezenet_path)
+if densenet_path not in sys.path:
+    sys.path.append(densenet_path)
 
-from squeezenet import SqueezeNet
+from densenet161 import DenseNet
 from keras.optimizers import Adadelta, Adam, SGD
 from keras.layers import GlobalAveragePooling2D, Activation, Flatten, Dense
 from keras.models import Model
@@ -17,11 +17,11 @@ from .keras_metrics import precision, recall
 def get_squeezenet(input_shape, n_classes, **params):
     """
     """
-    optimizer='' if 'optimizer' not in params else params['optimizer']
-    lr=0.01 if 'lr' not in params else params['lr']
-    loss='' if 'loss' not in params else params['loss']
-    weights='imagenet' if 'weights' not in params else params['weights']
-    final_activation='sigmoid'
+    optimizer = '' if 'optimizer' not in params else params['optimizer']
+    lr = 0.01 if 'lr' not in params else params['lr']
+    loss = '' if 'loss' not in params else params['loss']
+    weights = 'imagenet' if 'weights' not in params else params['weights']
+    final_activation = 'sigmoid'
 
     # names_to_train = [
     #     'fire5/squeeze1x1', 'fire5/expand1x1', 'fire5/expand3x3',
@@ -68,14 +68,13 @@ def get_squeezenet(input_shape, n_classes, **params):
     return model
 
 
-
 def get_squeezenet2(input_shape, n_classes, **params):
     """
     """
-    optimizer='' if 'optimizer' not in params else params['optimizer']
-    lr=0.01 if 'lr' not in params else params['lr']
-    loss='' if 'loss' not in params else params['loss']
-    weights='imagenet' if 'weights' not in params else params['weights']
+    optimizer = '' if 'optimizer' not in params else params['optimizer']
+    lr = 0.01 if 'lr' not in params else params['lr']
+    loss = '' if 'loss' not in params else params['loss']
+    weights = 'imagenet' if 'weights' not in params else params['weights']
 
     snet = SqueezeNet(input_shape=input_shape, classes=n_classes, include_top=False, weights=weights)
 

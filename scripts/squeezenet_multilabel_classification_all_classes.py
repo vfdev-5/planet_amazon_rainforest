@@ -142,7 +142,7 @@ for train_index, test_index in kf.split(trainval_id_type_list):
             print("Load best loss weights: ", best_weights_filename, best_val_loss)
             cnn.load_weights(best_weights_filename)
         else:
-            assert os.path.exist(params['pretrained_model']), "Not found pretrained model"
+            assert os.path.exists(params['pretrained_model']), "Not found pretrained model"
             print("Load weights: ", params['pretrained_model'])
             cnn.load_weights(params['pretrained_model'], by_name=True)
 

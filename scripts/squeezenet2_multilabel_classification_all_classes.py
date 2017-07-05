@@ -140,9 +140,9 @@ for train_index, test_index in kf.split(trainval_id_type_list):
             assert len(weights_files) > 0, "Failed to load weights"
             best_weights_filename, best_val_loss = find_best_weights_file(weights_files, field_name='val_loss')
             print("Load best loss weights: ", best_weights_filename, best_val_loss)
-            cnn.load_weights(best_weights_filename)
+            cnn.load_weights(best_weights_filename, by_name=True)
         else:
-            assert os.path.exist(params['pretrained_model']), "Not found pretrained model"
+            assert os.path.exists(params['pretrained_model']), "Not found pretrained model"
             print("Load weights: ", params['pretrained_model'])
             cnn.load_weights(params['pretrained_model'], by_name=True)
 
@@ -189,7 +189,7 @@ while run_counter < n_runs:
         assert len(weights_files) > 0, "Failed to load weights"
         best_weights_filename, best_val_loss = find_best_weights_file(weights_files, field_name='val_loss')
         print("Load best loss weights: ", best_weights_filename, best_val_loss)
-        cnn.load_weights(best_weights_filename)
+        cnn.load_weights(best_weights_filename, by_name=True)
 
         score = validate(cnn, val_id_type_list, **params)
         cv_mean_scores[run_counter-1, val_fold_index-1] = score
