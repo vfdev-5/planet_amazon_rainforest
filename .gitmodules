@@ -7,3 +7,6 @@
 [submodule "common/models/KerasSqueezeNet"]
 	path = common/models/KerasSqueezeNet
 	url = https://github.com/vfdev-5/keras-squeezenet
+[submodule "common/models/KerasDenseNet"]
+	path = common/models/KerasDenseNet
+	url = https://github.com/vfdev-5/DenseNet-Keras
