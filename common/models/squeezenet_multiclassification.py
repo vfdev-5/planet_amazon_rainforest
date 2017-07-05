@@ -42,7 +42,7 @@ def get_squeezenet(input_shape, n_classes, **params):
     # Rescale between 0 -> 0 and large -> 1
     # out = Activation('tanh', name='loss_2')(x)
 
-    out = Activation(final_activation, name='loss')(x)
+    out = Activation(final_activation, name='tag_vector')(x)
     model = Model(inputs=snet.inputs, outputs=out)
 
     # Set some layers trainable

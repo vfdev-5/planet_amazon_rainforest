@@ -36,18 +36,23 @@ def random_imgaug(x, seq):
 
 
 def get_train_imgaug_seq(seed):
+    determinist = {
+        "deterministic": True,
+        "random_state": seed
+    }
     train_seq = iaa.Sequential([
-        iaa.Sometimes(0.45, iaa.Sharpen(alpha=0.9, lightness=(0.5, 1.15))),
-        iaa.Sometimes(0.45, iaa.ContrastNormalization(alpha=(0.75, 1.15))),
-        iaa.Sometimes(0.5, iaa.AdditiveGaussianNoise(scale=(0, 0.01 * 255), per_channel=True)),
+        iaa.Sometimes(0.45, iaa.Sharpen(alpha=0.9, lightness=(0.5, 1.15), **determinist), **determinist),
+        iaa.Sometimes(0.45, iaa.ContrastNormalization(alpha=(0.75, 1.15), **determinist), **determinist),
+        iaa.Sometimes(0.5, iaa.AdditiveGaussianNoise(scale=(0, 0.01 * 255), per_channel=True, **determinist), **determinist),
         iaa.Affine(translate_px=(-25, 25),
                    scale=(0.85, 1.15),
                    rotate=(-65, 65),
-                   mode='reflect'),
+                   mode='reflect',
+                   **determinist),
         # iaa.Add(value=(-35, 35), per_channel=True),  # Probably, can change nature of label
     ],
         random_order=True,
-        random_state=seed
+        **determinist
     )
     return train_seq
 
@@ -57,14 +62,19 @@ def get_id_imgaug_seq():
 
 
 def get_val_imgaug_seq(seed):
+    determinist = {
+        "deterministic": True,
+        "random_state": seed
+    }
     val_seq = iaa.Sequential([
         iaa.Affine(translate_px=(-25, 25),
                    scale=(0.85, 1.15),
                    rotate=(-45, 45),
-                   mode='reflect'),
+                   mode='reflect',
+                   **determinist),
     ],
         random_order=True,
-        random_state=seed
+        **determinist
     )
     return val_seq
 
@@ -85,14 +95,14 @@ def get_gen_flow(id_type_list, **params):
     assert normalization is not None, "normalization is needed"
     assert imgaug_seq is not None, "imgaug_seq is needed"
     assert batch_size is not None, "batch_size is needed"
-    assert save_prefix is not None, "save_prefix is needed"
+    if normalize_data and (normalization == '' or normalization == 'from_save_prefix'):
+        assert save_prefix is not None, "save_prefix is needed"
     assert 'image_size' in params, "image_size is needed"
 
     if verbose is None:
         verbose = 0
 
-    if xy_provider is None:
-        xy_provider = image_class_labels_provider
+    assert xy_provider is not None, "xy_provider is needed"
 
     if hasattr(K, 'image_data_format'):
         channels_first = K.image_data_format() == 'channels_first'
