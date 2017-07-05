@@ -68,7 +68,6 @@ def get_squeezenet(input_shape, n_classes, **params):
     return model
 
 
-
 def get_squeezenet2(input_shape, n_classes, **params):
     """
     """
