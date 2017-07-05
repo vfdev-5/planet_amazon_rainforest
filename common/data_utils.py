@@ -30,8 +30,8 @@ TRAIN_CSV = pd.read_csv(TRAIN_CSV_FILEPATH)
 train_jpg_files = glob(os.path.join(TRAIN_DATA, "jpg", "*.jpg"))
 train_jpg_ids = [s[len(os.path.join(TRAIN_DATA, "jpg"))+1+len('train_'):-4] for s in train_jpg_files]
 
-test_jpg_files = glob(os.path.join(TRAIN_DATA, "jpg", "*.jpg"))
-test_jpg_ids = [s[len(os.path.join(TRAIN_DATA, "jpg"))+1+len('test_'):-4] for s in test_jpg_files]
+test_jpg_files = glob(os.path.join(TEST_DATA, "jpg", "*.jpg"))
+test_jpg_ids = [s[len(os.path.join(TEST_DATA, "jpg"))+1+len('test_'):-4] for s in test_jpg_files]
 
 
 def get_unique_tags(df):

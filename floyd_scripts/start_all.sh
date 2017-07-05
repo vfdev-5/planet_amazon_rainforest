@@ -17,7 +17,7 @@ export OUTPUT_PATH="/output"
 
 cd $ROOT
 
-python scripts/squeezenet_multilabel_classification_all_classes.py
+python scripts/squeezenet2_multilabel_classification_all_classes.py
 
 
 echo "\n Finished training"

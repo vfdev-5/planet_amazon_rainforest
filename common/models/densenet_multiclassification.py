@@ -3,7 +3,7 @@ import os
 import sys
 
 current_path = os.path.abspath(os.path.dirname(__file__))
-squeezenet_path = os.path.abspath(os.path.join(current_path, 'KerasSqueezeNet', 'keras_squeezenet'))
+densenet_path = os.path.abspath(os.path.join(current_path, 'KerasDenseNet'))
 if squeezenet_path not in sys.path:
     sys.path.append(squeezenet_path)
 

@@ -16,7 +16,6 @@ labels.txt*
 *.gz
 /tmp/*.npz
 /notebooks/weights/*.log
-.floyd*
 
 ## Linux backup files
 *~

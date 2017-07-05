@@ -15,16 +15,13 @@ project_common_path = os.path.abspath(os.path.join(project_common_path, '..', 'c
 if not project_common_path in sys.path:
     sys.path.append(project_common_path)
 
-
 import numpy as np
 
 from data_utils import get_id_type_list_for_class, OUTPUT_PATH, GENERATED_DATA, to_set
 from training_utils import classification_train as train, classification_validate as validate
 from training_utils import exp_decay, step_decay
 
-
 from models.squeezenet_multiclassification import get_squeezenet2
-
 
 from sklearn.model_selection import KFold
 from data_utils import to_set, equalized_data_classes, unique_tags, train_jpg_ids, TRAIN_ENC_CL_CSV
@@ -37,10 +34,7 @@ from xy_providers import image_label_provider
 cnn = get_squeezenet2((256, 256, 3), 17)
 cnn.summary()
 
-
-
 # ## Train on all classes
-
 
 seed = 2017
 np.random.seed(seed)
@@ -107,8 +101,8 @@ params = {
 
 
 }
-params['save_prefix'] = '{cnn_name}_seed=%i_all_classes' % params['seed']
 
+params['save_prefix_template'] = '{cnn_name}_all_classes_fold={fold_index}_seed=%i' % params['seed']
 params['input_shape'] = params['image_size'] + (3,)
 params['n_classes'] = len(unique_tags)
 
@@ -137,7 +131,7 @@ for train_index, test_index in kf.split(trainval_id_type_list):
     assert len(to_set(train_id_type_list) & to_set(val_id_type_list)) == 0, "WTF"
 
     cnn = params['network'](lr=params['lr_kwargs']['lr'], **params)
-    params['save_prefix'] = params['save_prefix'].format(cnn_name=cnn.name)
+    params['save_prefix'] = params['save_prefix_template'].format(cnn_name=cnn.name, fold_index=val_fold_index-1)
     print("\n {} - Loaded {} model ...".format(datetime.now(), cnn.name))
 
     if 'pretrained_model' in params:
@@ -188,6 +182,7 @@ while run_counter < n_runs:
         assert len(to_set(train_id_type_list) & to_set(val_id_type_list)) == 0, "WTF"
 
         cnn = params['network'](input_shape=params['input_shape'], n_classes=params['n_classes'])
+        params['save_prefix'] = params['save_prefix_template'].format(cnn_name=cnn.name, fold_index=val_fold_index-1)
         print("\n {} - Loaded {} model ...".format(datetime.now(), cnn.name))
 
         weights_files = glob(os.path.join(OUTPUT_PATH, "weights", "%s*.h5" % params['save_prefix']))
