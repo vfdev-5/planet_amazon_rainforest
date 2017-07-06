@@ -29,6 +29,7 @@ from data_utils import load_pretrained_model, get_label
 from data_utils import DataCache
 
 from xy_providers import image_label_provider
+from models.keras_metrics import mae_with_false_negatives
 
 
 cnn = get_squeezenet2((256, 256, 3), 17)
@@ -52,9 +53,9 @@ params = {
 
     'network': get_squeezenet2,
     'optimizer': 'adadelta',
-    'loss': 'mae',
+    'loss': mae_with_false_negatives,
     'nb_epochs': 50,
-    'batch_size': 16,
+    'batch_size': 128,
 
     'normalize_data': True,
     'normalization': 'vgg',
