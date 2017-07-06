@@ -42,12 +42,12 @@ if len(test_jpg_ids) == 0:
 
 
 def get_unique_tags(df):
-    unique_tags = set()
+    _unique_tags = set()
     image_tags = df['tags'].apply(lambda x: x.split(' '))
     for line in image_tags:
         for l in line:
-            unique_tags.add(l)
-    return list(unique_tags)
+            _unique_tags.add(l)
+    return sorted(list(_unique_tags))
 
 unique_tags = get_unique_tags(TRAIN_CSV)
 

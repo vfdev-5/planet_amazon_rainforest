@@ -83,10 +83,11 @@ def get_gen_flow(id_type_list, **params):
     assert seed is not None, "seed is needed"
     assert normalize_data is not None, "normalize_data is needed"
     assert normalization is not None, "normalization is needed"
-    assert imgaug_seq is not None, "imgaug_seq is needed"
     assert batch_size is not None, "batch_size is needed"
-    assert save_prefix is not None, "save_prefix is needed"
     assert 'image_size' in params, "image_size is needed"
+
+    if normalize_data and (normalization == '' or normalization == 'from_save_prefix'):
+        assert save_prefix is not None, "save_prefix is needed"
 
     if verbose is None:
         verbose = 0
@@ -104,9 +105,12 @@ def get_gen_flow(id_type_list, **params):
     def _random_imgaug(x):
         return random_imgaug(255.0 * x, imgaug_seq) * 1.0/255.0
 
-    gen = ImageDataGenerator(pipeline=('random_transform',
-                                       _random_imgaug,
-                                       'standardize'),
+    pipeline = ('random_transform',)
+    if imgaug_seq is not None:
+        pipeline += (_random_imgaug, )
+    pipeline += ('standardize', )
+
+    gen = ImageDataGenerator(pipeline=pipeline,
                              featurewise_center=normalize_data,
                              featurewise_std_normalization=normalize_data,
                              horizontal_flip=True,
@@ -302,6 +306,14 @@ def classification_train(model,
         pass
 
 
+def rmse(y):
+    return np.sqrt(np.mean(np.power(y, 2.0)))
+
+from hashlib import sha256
+
+def hash(y):
+    return sha256(y).hexdigest()
+
 def classification_validate(model,
                             val_id_type_list,
                             **params):
@@ -309,7 +321,8 @@ def classification_validate(model,
     assert 'seed' in params, "Need seed, params = {}".format(params)
     verbose = 1 if 'verbose' not in params else params['verbose']
 
-    val_seq = get_val_imgaug_seq(params['seed'])
+    # val_seq = get_val_imgaug_seq(params['seed'])
+    val_seq = None
     val_gen, val_flow = get_gen_flow(id_type_list=val_id_type_list,
                                      imgaug_seq=val_seq,
                                      test_mode=True, **params)
@@ -319,8 +332,12 @@ def classification_validate(model,
     counter = 0
     for x, y_true, info in val_flow:
         s = y_true.shape[0]
+        if verbose > 0:
+            print("-- %i / %i" % (s *counter, len(val_id_type_list)))
+            print("-- ", hash(y_true), y_true)
+
         start = counter * s
-        end = (counter + 1) * s
+        end = min((counter + 1) * s, len(val_id_type_list))
         y_true_total[start:end, :] = y_true
 
         y_pred = model.predict(x)
@@ -329,6 +346,8 @@ def classification_validate(model,
 
         counter += 1
 
+    print("rmse: ", rmse(y_true_total), rmse(y_pred_total), rmse(y_true_total - y_pred_total))
+    print("Hashes: ", hash(y_true_total), hash(y_pred_total))
     total_score = score(y_true_total, y_pred_total)
     if verbose > 0:
         print("Total score : ", total_score)

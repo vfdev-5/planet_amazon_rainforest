@@ -83,7 +83,9 @@ def image_label_provider(image_id_type_list,
                          with_label=True,
                          verbose=0, **kwargs):
 
+    print("image_label_provider : seed=", seed)
     if seed is not None:
+        print("- image_label_provider : set seed")
         np.random.seed(seed)
 
     counter = 0
@@ -127,7 +129,7 @@ def image_label_provider(image_id_type_list,
                 else:
                     label = None
                 # fill the cache only at first time:
-                if counter == 0:
+                if cache is not None and counter == 0:
                     cache.put(key, (img, label))
 
             if test_mode:
