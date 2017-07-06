@@ -93,7 +93,6 @@ def get_gen_flow(id_type_list, **params):
     assert seed is not None, "seed is needed"
     assert normalize_data is not None, "normalize_data is needed"
     assert normalization is not None, "normalization is needed"
-    assert imgaug_seq is not None, "imgaug_seq is needed"
     assert batch_size is not None, "batch_size is needed"
     if normalize_data and (normalization == '' or normalization == 'from_save_prefix'):
         assert save_prefix is not None, "save_prefix is needed"
@@ -114,9 +113,12 @@ def get_gen_flow(id_type_list, **params):
     def _random_imgaug(x):
         return random_imgaug(255.0 * x, imgaug_seq) * 1.0/255.0
 
-    gen = ImageDataGenerator(pipeline=('random_transform',
-                                       _random_imgaug,
-                                       'standardize'),
+    pipeline = ('random_transform', )
+    if imgaug_seq is not None:
+        pipeline = pipeline + (_random_imgaug, )
+    pipeline = pipeline + ('standardize', )
+
+    gen = ImageDataGenerator(pipeline=pipeline,
                              featurewise_center=normalize_data,
                              featurewise_std_normalization=normalize_data,
                              horizontal_flip=True,
@@ -205,8 +207,9 @@ class EpochValidationCallback(Callback):
 def classification_train(model,
                          train_id_type_list,
                          val_id_type_list,
-                         **params):
+                         **kwargs):
 
+    params = dict(kwargs)
     assert 'batch_size' in params, "Need batch_size"
     assert 'save_prefix' in params, "Need save_prefix"
     assert 'nb_epochs' in params, "Need nb_epochs"
@@ -277,10 +280,12 @@ def classification_train(model,
         train_gen, train_flow = get_gen_flow(id_type_list=train_id_type_list,
                                              imgaug_seq=train_seq,
                                              **params)
+
         if normalize_data and normalization == '':
             params['normalization'] = 'from_save_prefix'
 
-        val_seq = get_val_imgaug_seq(seed)
+        # val_seq = get_val_imgaug_seq(seed)
+        val_seq = None
         val_gen, val_flow = get_gen_flow(id_type_list=val_id_type_list,
                                          imgaug_seq=val_seq,
                                          **params)
@@ -314,12 +319,25 @@ def classification_train(model,
 
 def classification_validate(model,
                             val_id_type_list,
-                            **params):
+                            **kwargs):
 
+    params = dict(kwargs)
     assert 'seed' in params, "Need seed, params = {}".format(params)
+    assert 'normalize_data' in params, "Need normalize_data"
     verbose = 1 if 'verbose' not in params else params['verbose']
 
-    val_seq = get_val_imgaug_seq(params['seed'])
+    normalize_data = params['normalize_data']
+    if normalize_data:
+        assert 'normalization' in params, "Need normalization"
+        normalization = params['normalization']
+    else:
+        normalization = None
+
+    if normalize_data and normalization == '':
+        params['normalization'] = 'from_save_prefix'
+
+    # val_seq = get_val_imgaug_seq(params['seed'])
+    val_seq = None
     val_gen, val_flow = get_gen_flow(id_type_list=val_id_type_list,
                                      imgaug_seq=val_seq,
                                      test_mode=True, **params)
@@ -328,6 +346,8 @@ def classification_validate(model,
     y_pred_total = np.zeros_like(y_true_total)
     counter = 0
     for x, y_true, info in val_flow:
+        if verbose > 0:
+            print("-- %i / %i" % (counter, len(val_id_type_list)), info)
         s = y_true.shape[0]
         start = counter * s
         end = (counter + 1) * s
