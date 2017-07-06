@@ -26,8 +26,8 @@ from preprocessing.image.generators import ImageDataGenerator
 from imgaug.imgaug import augmenters as iaa
 
 from data_utils import GENERATED_DATA, unique_tags
-from xy_providers import image_class_labels_provider
 from metrics import score
+from sklearn.metrics import mean_absolute_error
 from postproc import pred_threshold
 
 
@@ -43,7 +43,8 @@ def get_train_imgaug_seq(seed):
     train_seq = iaa.Sequential([
         iaa.Sometimes(0.45, iaa.Sharpen(alpha=0.9, lightness=(0.5, 1.15), **determinist), **determinist),
         iaa.Sometimes(0.45, iaa.ContrastNormalization(alpha=(0.75, 1.15), **determinist), **determinist),
-        iaa.Sometimes(0.5, iaa.AdditiveGaussianNoise(scale=(0, 0.01 * 255), per_channel=True, **determinist), **determinist),
+        # iaa.Sometimes(0.5, iaa.AdditiveGaussianNoise(scale=(0, 0.01 * 255),
+        #                                              per_channel=True, **determinist), **determinist),
         iaa.Affine(translate_px=(-25, 25),
                    scale=(0.85, 1.15),
                    rotate=(-65, 65),
@@ -115,8 +116,8 @@ def get_gen_flow(id_type_list, **params):
 
     pipeline = ('random_transform', )
     if imgaug_seq is not None:
-        pipeline = pipeline + (_random_imgaug, )
-    pipeline = pipeline + ('standardize', )
+        pipeline += (_random_imgaug, )
+    pipeline += ('standardize', )
 
     gen = ImageDataGenerator(pipeline=pipeline,
                              featurewise_center=normalize_data,
@@ -195,13 +196,11 @@ class EpochValidationCallback(Callback):
         super(EpochValidationCallback, self).__init__()
         self.val_id_type_list = val_id_type_list
         self.ev_params = params
-        self.scores = []
         assert 'seed' in self.ev_params, "Need seed, params: {}".format(self.ev_params)
 
     def on_epoch_begin(self, epoch, logs=None):
-        score = classification_validate(self.model, self.val_id_type_list, verbose=0, **self.ev_params)
-        print("\nEpoch validation: score = %f \n" % score)
-        self.scores.append(score)
+        f2, mae = classification_validate(self.model, self.val_id_type_list, verbose=0, **self.ev_params)
+        print("\nEpoch validation: f2 = %f, mae=%f \n" % (f2, mae))
 
 
 def classification_train(model,
@@ -336,8 +335,7 @@ def classification_validate(model,
     if normalize_data and normalization == '':
         params['normalization'] = 'from_save_prefix'
 
-    # val_seq = get_val_imgaug_seq(params['seed'])
-    val_seq = None
+    val_seq = get_val_imgaug_seq(params['seed'])
     val_gen, val_flow = get_gen_flow(id_type_list=val_id_type_list,
                                      imgaug_seq=val_seq,
                                      test_mode=True, **params)
@@ -350,7 +348,7 @@ def classification_validate(model,
             print("-- %i / %i" % (counter, len(val_id_type_list)), info)
         s = y_true.shape[0]
         start = counter * s
-        end = (counter + 1) * s
+        end = min((counter + 1) * s, len(val_id_type_list))
         y_true_total[start:end, :] = y_true
 
         y_pred = model.predict(x)
@@ -359,7 +357,9 @@ def classification_validate(model,
 
         counter += 1
 
-    total_score = score(y_true_total, y_pred_total)
+    total_f2 = score(y_true_total, y_pred_total)
+    total_mae = mean_absolute_error(y_true_total, y_pred_total)
+
     if verbose > 0:
-        print("Total score : ", total_score)
-    return total_score
+        print("Total f2, mae : ", total_f2, total_mae)
+    return total_f2, total_mae

@@ -25,22 +25,29 @@ GENERATED_DATA = os.path.join(OUTPUT_PATH, 'generated')
 if not os.path.exists(GENERATED_DATA):
     os.makedirs(GENERATED_DATA)
 
+assert os.path.isfile(TRAIN_CSV_FILEPATH), "File %s is not found" % TRAIN_CSV_FILEPATH
 TRAIN_CSV = pd.read_csv(TRAIN_CSV_FILEPATH)
 
 train_jpg_files = glob(os.path.join(TRAIN_DATA, "jpg", "*.jpg"))
 train_jpg_ids = [s[len(os.path.join(TRAIN_DATA, "jpg"))+1+len('train_'):-4] for s in train_jpg_files]
 
+if len(train_jpg_files) == 0:
+    print("No trainined data found at %s " % TRAIN_DATA)
+
 test_jpg_files = glob(os.path.join(TEST_DATA, "jpg", "*.jpg"))
 test_jpg_ids = [s[len(os.path.join(TEST_DATA, "jpg"))+1+len('test_'):-4] for s in test_jpg_files]
 
+if len(test_jpg_ids) == 0:
+    print("No data found at %s " % TEST_DATA)
+
 
 def get_unique_tags(df):
-    unique_tags = set()
+    _unique_tags = set()
     image_tags = df['tags'].apply(lambda x: x.split(' '))
     for line in image_tags:
         for l in line:
-            unique_tags.add(l)
-    return list(unique_tags)
+            _unique_tags.add(l)
+    return sorted(list(_unique_tags))
 
 unique_tags = get_unique_tags(TRAIN_CSV)
 
@@ -50,8 +57,8 @@ for i, l in enumerate(unique_tags):
 
 
 def encode_tags(df):
-    unique_tags = get_unique_tags(df)
-    n_tags = len(unique_tags)
+    _unique_tags = get_unique_tags(df)
+    n_tags = len(_unique_tags)
 
     def tags2vec(tags):
         enc = [tag_to_index[tag] for tag in tags.split(" ")]
@@ -60,9 +67,9 @@ def encode_tags(df):
         return out.tolist()
 
     enc_df = TRAIN_CSV.copy()
-    for c in unique_tags:
+    for c in _unique_tags:
         enc_df.loc[:, c] = np.zeros((len(TRAIN_CSV), 1), dtype=np.uint8)
-    enc_df.loc[:, unique_tags] = np.array(TRAIN_CSV['tags'].apply(tags2vec).tolist())
+    enc_df.loc[:, _unique_tags] = np.array(TRAIN_CSV['tags'].apply(tags2vec).tolist())
     return enc_df
 
 enc_df_path = os.path.join(GENERATED_DATA, "train_enc.csv")
@@ -161,7 +168,7 @@ def get_label(image_id, image_type, as_series=False):
     assert "Train" in image_type, "Can get only train labels"
     if as_series:
         return TRAIN_ENC_CSV.loc[int(image_id), unique_tags]
-    return TRAIN_ENC_CSV.loc[int(image_id), unique_tags].values
+    return TRAIN_ENC_CSV.loc[int(image_id), unique_tags].values.astype(np.uint8)
 
 
 def get_class_label_mask(class_index):
@@ -194,6 +201,23 @@ def find_best_weights_file(weights_files, field_name='val_loss', best_min=True):
             best_value = val
             best_weights_filename = f
     return best_weights_filename, best_value
+
+
+def load_pretrained_model(model, **params):
+
+    assert 'pretrained_model' in params, "pretrained_model is needed"
+    assert 'save_prefix' in params, "save_prefix is needed"
+
+    if params['pretrained_model'] == 'load_best':
+        weights_files = glob(os.path.join(OUTPUT_PATH, "weights", "%s*.h5" % params['save_prefix']))
+        assert len(weights_files) > 0, "Failed to load weights"
+        best_weights_filename, best_val_loss = find_best_weights_file(weights_files, field_name='val_loss')
+        print("Load best loss weights: ", best_weights_filename, best_val_loss)
+        model.load_weights(best_weights_filename)
+    else:
+        assert os.path.exists(params['pretrained_model']), "Not found pretrained model"
+        print("Load weights: ", params['pretrained_model'])
+        model.load_weights(params['pretrained_model'])
 
 
 class DataCache(object):

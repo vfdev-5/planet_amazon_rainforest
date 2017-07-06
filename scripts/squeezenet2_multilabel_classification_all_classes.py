@@ -25,8 +25,8 @@ from models.squeezenet_multiclassification import get_squeezenet2
 
 from sklearn.model_selection import KFold
 from data_utils import to_set, equalized_data_classes, unique_tags, train_jpg_ids, TRAIN_ENC_CL_CSV
-from data_utils import find_best_weights_file, get_label
-
+from data_utils import load_pretrained_model, get_label
+from data_utils import DataCache
 
 from xy_providers import image_label_provider
 
@@ -34,38 +34,16 @@ from xy_providers import image_label_provider
 cnn = get_squeezenet2((256, 256, 3), 17)
 cnn.summary()
 
-# ## Train on all classes
+# Setup configuration
 
 seed = 2017
 np.random.seed(seed)
 
-
-# In[8]:
-
-
 trainval_id_type_list = [(image_id, "Train_jpg") for image_id in train_jpg_ids]
-
+np.random.shuffle(trainval_id_type_list)
 print(len(trainval_id_type_list))
 
-
-from data_utils import DataCache
-
-try:
-    if cache is None:
-        cache_filepath = os.path.join(GENERATED_DATA, 'data_cache.pkl')
-        if os.path.exists(cache_filepath):
-            print("Load cache from pickle file")
-            cache = load_data_cache(cache_filepath)
-        else:
-            cache = DataCache(0)
-except NameError:
-    cache_filepath = os.path.join(GENERATED_DATA, 'data_cache.pkl')
-    if os.path.exists(cache_filepath):
-        print("Load cache from pickle file")
-        cache = load_data_cache(cache_filepath)
-    else:
-        cache = DataCache(0)
-
+cache = DataCache(0)
 
 params = {
     'seed': seed,
@@ -74,9 +52,9 @@ params = {
 
     'network': get_squeezenet2,
     'optimizer': 'adadelta',
-    'loss': 'categorical_crossentropy',
-    'nb_epochs': 100,
-    'batch_size': 128,
+    'loss': 'mae',
+    'nb_epochs': 50,
+    'batch_size': 16,
 
     'normalize_data': True,
     'normalization': 'vgg',
@@ -85,20 +63,19 @@ params = {
 
     'lr_kwargs': {
         'lr': 0.01,
-        'a': 0.95,
+        'base': 2,
+        'period': 10,
         'init_epoch': 0
     },
-    'lr_decay_f': exp_decay,
+    'lr_decay_f': step_decay,
 
     'cache': cache,
 
-    'class_index': 0,
-
+#     'class_index': 0,
 #     'pretrained_model': 'load_best',
 #     'pretrained_model': os.path.join(GENERATED_DATA, "weights", ""),
 
     'output_path': OUTPUT_PATH,
-
 
 }
 
@@ -106,15 +83,18 @@ params['save_prefix_template'] = '{cnn_name}_all_classes_fold={fold_index}_seed=
 params['input_shape'] = params['image_size'] + (3,)
 params['n_classes'] = len(unique_tags)
 
+params['save_prefix_template'] = '{cnn_name}_all_classes_fold={fold_index}_seed=%i' % params['seed']
+params['input_shape'] = params['image_size'] + (3,)
+params['n_classes'] = len(unique_tags)
 
 # Start CV
 
 n_folds = 5
 val_fold_index = 0
-val_fold_indices = []
+val_fold_indices = [0, ]
 hists = []
 
-kf = KFold(n_splits=n_folds, shuffle=True, random_state=params['seed'])
+kf = KFold(n_splits=n_folds)
 trainval_id_type_list = np.array(trainval_id_type_list)
 for train_index, test_index in kf.split(trainval_id_type_list):
     train_id_type_list, val_id_type_list = trainval_id_type_list[train_index], trainval_id_type_list[test_index]
@@ -130,21 +110,13 @@ for train_index, test_index in kf.split(trainval_id_type_list):
     print(datetime.now(), len(train_id_type_list), len(val_id_type_list))
     assert len(to_set(train_id_type_list) & to_set(val_id_type_list)) == 0, "WTF"
 
-    cnn = params['network'](lr=params['lr_kwargs']['lr'], **params)
-    params['save_prefix'] = params['save_prefix_template'].format(cnn_name=cnn.name, fold_index=val_fold_index-1)
+    weights = None if 'pretrained_model' in params else 'imagenet'
+    cnn = params['network'](lr=params['lr_kwargs']['lr'], weights=weights, **params)
+    params['save_prefix'] = params['save_prefix_template'].format(cnn_name=cnn.name, fold_index=val_fold_index - 1)
     print("\n {} - Loaded {} model ...".format(datetime.now(), cnn.name))
 
     if 'pretrained_model' in params:
-        if params['pretrained_model'] == 'load_best':
-            weights_files = glob(os.path.join(params['output_path'], "weights", "%s*.h5" % params['save_prefix']))
-            assert len(weights_files) > 0, "Failed to load weights"
-            best_weights_filename, best_val_loss = find_best_weights_file(weights_files, field_name='val_loss')
-            print("Load best loss weights: ", best_weights_filename, best_val_loss)
-            cnn.load_weights(best_weights_filename)
-        else:
-            assert os.path.exist(params['pretrained_model']), "Not found pretrained model"
-            print("Load weights: ", params['pretrained_model'])
-            cnn.load_weights(params['pretrained_model'], by_name=True)
+        load_pretrained_model(cnn, **params)
 
     print("\n {} - Start training ...".format(datetime.now()))
     h = train(cnn, train_id_type_list, val_id_type_list, **params)
@@ -155,28 +127,31 @@ for train_index, test_index in kf.split(trainval_id_type_list):
 
 # ### Validation all classes
 
-n_runs = 1
+n_runs = 2
 n_folds = 5
 run_counter = 0
 cv_mean_scores = np.zeros((n_runs, n_folds))
 val_fold_indices = []
 
+params['pretrained_model'] = 'load_best'
+
+_trainval_id_type_list = np.array(trainval_id_type_list)
+
 while run_counter < n_runs:
     run_counter += 1
     print("\n\n ---- New run : ", run_counter, "/", n_runs)
     val_fold_index = 0
-    kf = KFold(n_splits=n_folds, shuffle=True, random_state=params['seed'])
-    trainval_id_type_list = np.array(trainval_id_type_list)
-    for train_index, test_index in kf.split(trainval_id_type_list):
-        train_id_type_list, val_id_type_list = trainval_id_type_list[train_index], trainval_id_type_list[test_index]
+    kf = KFold(n_splits=n_folds)
+    for train_index, test_index in kf.split(_trainval_id_type_list):
+        train_id_type_list, val_id_type_list = _trainval_id_type_list[train_index], _trainval_id_type_list[test_index]
 
         if len(val_fold_indices) > 0:
             if val_fold_index not in val_fold_indices:
                 val_fold_index += 1
                 continue
 
-        print("\n\n ---- Validation fold index: ", val_fold_index, "/", n_folds)
         val_fold_index += 1
+        print("\n\n ---- Validation fold index: ", val_fold_index, "/", n_folds)
 
         print(len(train_id_type_list), len(val_id_type_list))
         assert len(to_set(train_id_type_list) & to_set(val_id_type_list)) == 0, "WTF"
@@ -185,13 +160,13 @@ while run_counter < n_runs:
         params['save_prefix'] = params['save_prefix_template'].format(cnn_name=cnn.name, fold_index=val_fold_index-1)
         print("\n {} - Loaded {} model ...".format(datetime.now(), cnn.name))
 
-        weights_files = glob(os.path.join(OUTPUT_PATH, "weights", "%s*.h5" % params['save_prefix']))
-        assert len(weights_files) > 0, "Failed to load weights"
-        best_weights_filename, best_val_loss = find_best_weights_file(weights_files, field_name='val_loss')
-        print("Load best loss weights: ", best_weights_filename, best_val_loss)
-        cnn.load_weights(best_weights_filename)
+        load_pretrained_model(cnn, **params)
 
-        score = validate(cnn, val_id_type_list, **params)
-        cv_mean_scores[run_counter-1, val_fold_index-1] = score
+        params['seed'] += run_counter - 1
+
+        f2, mae = validate(cnn, val_id_type_list, verbose=0, **params)
+        cv_mean_scores[run_counter-1, val_fold_index-1] = f2
+
+        np.random.shuffle(_trainval_id_type_list)
 
 print(cv_mean_scores)
