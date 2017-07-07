@@ -32,7 +32,7 @@ from xy_providers import image_label_provider
 from models.keras_metrics import mae_with_false_negatives
 
 
-cnn = get_squeezenet2((256, 256, 3), 17)
+cnn = get_squeezenet2((224, 224, 3), 17)
 cnn.summary()
 
 # Setup configuration
@@ -54,29 +54,38 @@ params = {
     'network': get_squeezenet2,
     'optimizer': 'adadelta',
     'loss': mae_with_false_negatives,
-    'nb_epochs': 50,
+    'nb_epochs': 30,
     'batch_size': 128,  # !!! CHECK BEFORE LOAD TO FLOYD
 
     'normalize_data': True,
     'normalization': 'vgg',
 
-    'image_size': (256, 256),
+    'image_size': (224, 224),
 
+    # Learning rate scheduler
     'lr_kwargs': {
         'lr': 0.01,
         'a': 0.93,
-        'init_epoch': 6
+        'init_epoch': 0
     },
     'lr_decay_f': exp_decay,
+
+    # Reduce learning rate on plateau
+    'on_plateau': True,
+    'on_plateau_kwargs': {
+        'monitor': 'val_loss',
+        'factor': 0.1,
+        'patience': 5,
+        'verbose': 1
+    },
 
     'cache': cache,
 
 #     'class_index': 0,
-    'pretrained_model': 'load_best',
+#     'pretrained_model': 'load_best',
 #     'pretrained_model': os.path.join(GENERATED_DATA, "weights", ""),
 
     'output_path': OUTPUT_PATH,
-
 }
 
 params['save_prefix_template'] = '{cnn_name}_all_classes_fold={fold_index}_seed=%i' % params['seed']

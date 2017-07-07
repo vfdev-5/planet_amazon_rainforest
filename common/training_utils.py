@@ -5,7 +5,7 @@ from datetime import datetime
 
 import numpy as np
 
-from keras.callbacks import ModelCheckpoint, CSVLogger, LearningRateScheduler, Callback
+from keras.callbacks import ModelCheckpoint, CSVLogger, LearningRateScheduler, ReduceLROnPlateau, Callback
 import keras.backend as K
 from keras import __version__ as keras_version
 
@@ -102,7 +102,7 @@ def get_gen_flow(id_type_list, **params):
     if verbose is None:
         verbose = 0
 
-    assert xy_provider is not None, "xy_provider is needed"
+    assert xy_provider is not None and callable(xy_provider), "xy_provider is needed"
 
     if hasattr(K, 'image_data_format'):
         channels_first = K.image_data_format() == 'channels_first'
@@ -195,11 +195,12 @@ class EpochValidationCallback(Callback):
     def __init__(self, val_id_type_list, **params):
         super(EpochValidationCallback, self).__init__()
         self.val_id_type_list = val_id_type_list
-        self.ev_params = params
+        self.ev_params = dict(params)
+        self.ev_params['verbose'] = 0
         assert 'seed' in self.ev_params, "Need seed, params: {}".format(self.ev_params)
 
     def on_epoch_begin(self, epoch, logs=None):
-        f2, mae = classification_validate(self.model, self.val_id_type_list, verbose=0, **self.ev_params)
+        f2, mae = classification_validate(self.model, self.val_id_type_list, **self.ev_params)
         print("\nEpoch validation: f2 = %f, mae=%f \n" % (f2, mae))
 
 
@@ -262,10 +263,18 @@ def classification_train(model,
 
     callbacks = [model_checkpoint, csv_logger, epoch_validation]
     if lr_decay_f is not None:
-        assert 'lr_kwargs' in params, "Need lr_kwargs"
+        assert 'lr_kwargs' in params and \
+               isinstance(params['lr_kwargs'], dict), "Need lr_kwargs"
         _lr_decay_f = lambda e: lr_decay_f(epoch=e, **params['lr_kwargs'])
         lrate = LearningRateScheduler(_lr_decay_f)
         callbacks.append(lrate)
+    if 'on_plateau' in params and params['on_plateau']:
+        if 'on_plateau_kwargs' in params and \
+                isinstance(params['lr_kwargs'], dict):
+            onplateau = ReduceLROnPlateau(**params['on_plateau_kwargs'])
+        else:
+            onplateau = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, verbose=1)
+        callbacks.append(onplateau)
 
     print("\n-- Training parameters: %i, %i, %i, %i" % (batch_size, nb_epochs, samples_per_epoch, nb_val_samples))
     print("\n-- Fit model")
