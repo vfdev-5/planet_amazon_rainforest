@@ -21,6 +21,7 @@ TRAIN_DATA = os.path.join(DATA_PATH, "train")
 TEST_DATA = os.path.join(DATA_PATH, "test")
 TRAIN_CSV_FILEPATH = os.path.join(DATA_PATH, "train_v2.csv")
 GENERATED_DATA = os.path.join(OUTPUT_PATH, 'generated')
+RESOURCES_PATH = os.path.join(project_common_path, '..', 'resources')
 
 if not os.path.exists(GENERATED_DATA):
     os.makedirs(GENERATED_DATA)
@@ -209,7 +210,9 @@ def load_pretrained_model(model, **params):
     assert 'save_prefix' in params, "save_prefix is needed"
 
     if params['pretrained_model'] == 'load_best':
-        weights_files = glob(os.path.join(OUTPUT_PATH, "weights", "%s*.h5" % params['save_prefix']))
+        weights_files = []
+        weights_files.extend(glob(os.path.join(OUTPUT_PATH, "weights", "%s*.h5" % params['save_prefix'])))
+        weights_files.extend(glob(os.path.join(RESOURCES_PATH, "%s*.h5" % params['save_prefix'])))
         assert len(weights_files) > 0, "Failed to load weights"
         best_weights_filename, best_val_loss = find_best_weights_file(weights_files, field_name='val_loss')
         print("Load best loss weights: ", best_weights_filename, best_val_loss)

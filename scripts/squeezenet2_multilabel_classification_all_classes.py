@@ -44,7 +44,7 @@ trainval_id_type_list = [(image_id, "Train_jpg") for image_id in train_jpg_ids]
 np.random.shuffle(trainval_id_type_list)
 print(len(trainval_id_type_list))
 
-cache = DataCache(0)
+cache = DataCache(0)  # !!! CHECK BEFORE LOAD TO FLOYD
 
 params = {
     'seed': seed,
@@ -55,7 +55,7 @@ params = {
     'optimizer': 'adadelta',
     'loss': mae_with_false_negatives,
     'nb_epochs': 50,
-    'batch_size': 128,
+    'batch_size': 128,  # !!! CHECK BEFORE LOAD TO FLOYD
 
     'normalize_data': True,
     'normalization': 'vgg',
@@ -64,16 +64,15 @@ params = {
 
     'lr_kwargs': {
         'lr': 0.01,
-        'base': 2,
-        'period': 10,
-        'init_epoch': 0
+        'a': 0.93,
+        'init_epoch': 6
     },
-    'lr_decay_f': step_decay,
+    'lr_decay_f': exp_decay,
 
     'cache': cache,
 
 #     'class_index': 0,
-#     'pretrained_model': 'load_best',
+    'pretrained_model': 'load_best',
 #     'pretrained_model': os.path.join(GENERATED_DATA, "weights", ""),
 
     'output_path': OUTPUT_PATH,
