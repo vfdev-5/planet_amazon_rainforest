@@ -1,5 +1,7 @@
 from math import floor
 
+import warnings
+
 from keras.models import Model
 from keras.layers import Input, Concatenate, ZeroPadding2D
 from keras.layers.core import Dense, Dropout, Activation
@@ -8,16 +10,23 @@ from keras.layers.pooling import AveragePooling2D, GlobalAveragePooling2D, MaxPo
 from keras.layers.normalization import BatchNormalization
 import keras.backend as K
 from keras.applications.imagenet_utils import _obtain_input_shape
+from keras.engine.topology import get_source_inputs
+from keras.utils.data_utils import get_file
+from keras.utils import layer_utils
+from keras.initializers import VarianceScaling
+
+# https://github.com/liuzhuang13/DenseNet/blob/master/models/densenet.lua#L143
+he_normal_fan_out = VarianceScaling(scale=2., mode='fan_in', distribution='normal')
+
+
+WEIGHTS_PATH = ''
+WEIGHTS_PATH_NO_TOP = ''
 
 
 def DenseNet(include_top=True, weights='imagenet',
              input_tensor=None, input_shape=None,
-             classes=1000, **params
-             #nb_dense_block=4, growth_rate=32,
-             #reduction=0.0, dropout_rate=0.0, weight_decay=1e-4,
-             #classes=1000, weights='imagenet', include_top=True
-             ):
-    '''
+             classes=1000, **params):
+    """
         Instantiate the DenseNet architecture for ImageNet
 
         DenseNet-BC : use_bottleneck=True, reduction=0.5
@@ -39,24 +48,19 @@ def DenseNet(include_top=True, weights='imagenet',
                 It should have exactly 3 inputs channels,
                 and width and height should be no smaller than 48.
                 E.g. `(200, 200, 3)` would be one valid value.
-
+            classes: optional number of classes to classify images
+                into, only to be specified if `include_top` is True, and
+                if no `weights` argument is specified.
         # Keyword Arguments
             depth: possible values {121, 161, 169, 201, 'custom'}, corresponds to DenseNet-121, DenseNet-169 and DenseNet-161
             stages: optional, used with type = 'custom', should have 4 integer values, e.g. (6, 12, 24, 32)
-
             growth_rate: number of filters to add per dense block, recommended values for ImageNet, k=32 or k=48
             reduction: reduction factor of transition blocks.
-
-            nb_dense_block: number of dense blocks to add to end
-            nb_filter: initial number of filters
-
             dropout_rate: dropout rate
-            weight_decay: weight decay factor
-            classes: optional number of classes to classify images
-            weights_path: path to pre-trained weights
+            use_bottleneck: use bottleneck layers
         # Returns
             A Keras model instance.
-    '''
+    """
 
     if weights not in {'imagenet', None}:
         raise ValueError('The `weights` argument should be either '
@@ -76,6 +80,9 @@ def DenseNet(include_top=True, weights='imagenet',
     depth = 121 if 'depth' not in params else params['depth']
     assert depth in depth_stages or depth == 'custom', "Unknown depth value. See doc for available type values"
 
+    if weights == 'imagenet' and depth == 'custom':
+        raise ValueError('Should not specify `weights` as imagenet with `depth=\'custom\'`')
+
     depth_growth_rate = {
         121: 32,
         169: 32,
@@ -93,9 +100,11 @@ def DenseNet(include_top=True, weights='imagenet',
         assert len(stages) == 4, "Parameter stages should have 4 positive values"
         depth_stages[depth] = stages
 
-    reduction = 0.5 if 'reduction' not in params else params['reduction']
-    dropout_rate = 0.2 if 'dropout_rate' not in params else params['dropout_rate']
-    use_bottleneck = True if 'use_bottleneck' not in params else params['use_bottleneck']
+    _params = dict(params)
+    _params["growth_rate"] = growth_rate
+    _params["reduction"] = 0.5 if 'reduction' not in _params else _params['reduction']
+    _params["dropout_rate"] = 0.2 if 'dropout_rate' not in _params else _params['dropout_rate']
+    _params["use_bottleneck"] = True if 'use_bottleneck' not in _params else _params['use_bottleneck']
 
     n_channels = 2 * growth_rate
 
@@ -114,206 +123,155 @@ def DenseNet(include_top=True, weights='imagenet',
         else:
             img_input = input_tensor
     if K.image_data_format() == 'channels_last':
-        bn_axis = 3
+        _params["bn_axis"] = -1
     else:
-        bn_axis = 1
+        _params["bn_axis"] = 1
+
+    _params["concat_axis"] = _params["bn_axis"]
 
     # Memory option
-    mem_option = 0
+    _params["mem_option"] = 0
 
     # Initial transforms follow ResNet 224x224
     x = ZeroPadding2D((3, 3))(img_input)
-    x = Convolution2D(n_channels, 7, 7, subsample=(2, 2), name='conv1')(x)
-    x = BatchNormalization(axis=bn_axis, name='bn_conv1')(x)
+    x = Convolution2D(n_channels, 7, 7, subsample=(2, 2), name='conv1',
+                      use_bias=False, kernel_initializer=he_normal_fan_out)(x)
+    x = BatchNormalization(axis=_params["bn_axis"], name='bn_conv1')(x)
     x = Activation('relu', name='relu1')(x)
     x = ZeroPadding2D((1, 1), name='pool1_zeropadding')(x)
     x = MaxPooling2D((3, 3), strides=(2, 2), name='pool1')(x)
 
     # Dense-Block 1 and transition 56 x 56
-    x, n_channels = add_dense_block(x, n_channels,
-                                    stage=depth_stages[depth][0],
-                                    bn_axis=bn_axis,
-                                    concat_axis=bn_axis,
-                                    mem_option=mem_option,
-                                    growth_rate=growth_rate)
-    x = add_transition(x, n_channels, int(floor(n_channels * reduction)))
-    n_channels = int(floor(n_channels * reduction))
+    layer_id = "1"
+    x = add_dense_block(x, stage=depth_stages[depth][0], layer_id=layer_id, **_params)
+    n_outchannels = int(floor(x._keras_shape[_params['concat_axis']] * _params["reduction"]))
+    x = add_transition(x, n_outchannels, layer_id=layer_id, **_params)
 
     # Dense-Block 2 and transition 28 x 28
-    x, n_channels = add_dense_block(x, n_channels, stage=depth_stages[depth][1])
-    x = add_transition(x, n_channels, int(floor(n_channels * reduction)))
-    n_channels = int(floor(n_channels * reduction))
+    layer_id = "2"
+    x = add_dense_block(x, stage=depth_stages[depth][1], layer_id=layer_id, **_params)
+    n_outchannels = int(floor(x._keras_shape[_params['concat_axis']] * _params["reduction"]))
+    x = add_transition(x, n_outchannels, layer_id=layer_id, **_params)
 
+    # Dense - Block 3 and transition 14 x 14
+    layer_id = "3"
+    x = add_dense_block(x, stage=depth_stages[depth][2], layer_id=layer_id, **_params)
+    n_outchannels = int(floor(x._keras_shape[_params['concat_axis']] * _params["reduction"]))
+    x = add_transition(x, n_outchannels, layer_id=layer_id, **_params)
 
+    # Dense - Block 4 and transition 7 x 7
+    layer_id = "4"
+    x = add_dense_block(x, stage=depth_stages[depth][3], layer_id=layer_id, **_params)
 
+    if _params['mem_option'] >= 2:
+        raise Exception("Not yet implemented")
 
+    x = BatchNormalization(axis=_params['bn_axis'], name='transition_%s_bn1' % layer_id)(x)
+    x = Activation('relu', name='transition_%s_relu1' % layer_id)(x)
 
+    if include_top:
+        # Classification block
+        x = GlobalAveragePooling2D(name="final_avg_pooling")(x)
+        x = Dense(classes, activation='softmax', name='predictions')(x)
 
-    # Add dense blocks
-    for block_idx in range(nb_dense_block - 1):
-        stage = block_idx+2
-        x, nb_filter = dense_block(x, stage, nb_layers[block_idx], nb_filter, growth_rate, dropout_rate=dropout_rate, weight_decay=weight_decay)
+    # Ensure that the model takes into account
+    # any potential predecessors of `input_tensor`.
+    if input_tensor is not None:
+        inputs = get_source_inputs(input_tensor)
+    else:
+        inputs = img_input
 
-        # Add transition_block
-        x = transition_block(x, stage, nb_filter, compression=compression, dropout_rate=dropout_rate, weight_decay=weight_decay)
-        nb_filter = int(nb_filter * compression)
+    # Create model.
+    model = Model(inputs, x, name='densenet{}'.format(depth))
 
-    final_stage = stage + 1
-    x, nb_filter = dense_block(x, final_stage, nb_layers[-1], nb_filter, growth_rate, dropout_rate=dropout_rate, weight_decay=weight_decay)
-
-    x = BatchNormalization(epsilon=eps, axis=concat_axis, name='conv'+str(final_stage)+'_blk_bn')(x)
-    x = Scale(axis=concat_axis, name='conv'+str(final_stage)+'_blk_scale')(x)
-    x = Activation('relu', name='relu'+str(final_stage)+'_blk')(x)
-    x = GlobalAveragePooling2D(name='pool'+str(final_stage))(x)
-
-    x = Dense(classes, name='fc6')(x)
-    x = Activation('softmax', name='prob')(x)
-
-    model = Model(img_input, x, name='densenet')
-
-    if weights_path is not None:
+    # load weights
+    if weights == 'imagenet':
+        if include_top:
+            weights_path = get_file('densenet%s_weights_tf_dim_ordering_tf_kernels.h5' % depth,
+                                    WEIGHTS_PATH,
+                                    cache_subdir='models')
+        else:
+            weights_path = get_file('densenet%s_weights_tf_dim_ordering_tf_kernels_notop.h5' % depth,
+                                    WEIGHTS_PATH_NO_TOP,
+                                    cache_subdir='models')
         model.load_weights(weights_path)
+        if K.backend() == 'theano':
+            layer_utils.convert_all_kernels_in_model(model)
 
+        if K.image_data_format() == 'channels_first':
+            if include_top:
+                maxpool = model.get_layer(name='block5_pool')
+                shape = maxpool.output_shape[1:]
+                dense = model.get_layer(name='fc1')
+                layer_utils.convert_dense_weights_data_format(dense, shape, 'channels_first')
+
+            if K.backend() == 'tensorflow':
+                warnings.warn('You are using the TensorFlow backend, yet you '
+                              'are using the Theano '
+                              'image data format convention '
+                              '(`image_data_format="channels_first"`). '
+                              'For best performance, set '
+                              '`image_data_format="channels_last"` in '
+                              'your Keras config '
+                              'at ~/.keras/keras.json.')
     return model
 
 
-def add_dense_block(input_layer, n_channels, stage, concat_axis, growth_rate, **params):
+def add_dense_block(input_layer, stage, layer_id, **params):
     x = input_layer
     for i in range(stage):
-        x1 = add_layer(x, n_channels=n_channels, **params)
-        x = Concatenate(axis=concat_axis)([x, x1])
-        n_channels += growth_rate
-    return x, n_channels
-
-
-def add_layer(input_layer, n_channels, bn_axis=-1, mem_option=0, **params):
-    if mem_option >= 3:
-        raise Exception("Not yet implemented")
-        # x = DenseConnectLayerCustom(n_channels)(x)
-    else:
-        x = dense_connect_layer_standard(input_layer, bn_axis, **params)
+        x1 = add_layer(x, layer_id=layer_id + '_%i' % i, **params)
+        x = Concatenate(axis=params['concat_axis'])([x, x1])
     return x
 
 
-def add_transition(input_layer, n_channels, **params):
-    pass
+def add_layer(input_layer, **params):
+
+    if params['mem_option'] >= 2:
+        raise Exception("Not yet implemented")
+        # x = dense_connect_layer_custom(input_layer, **params)
+    else:
+        x = dense_connect_layer_standard(input_layer, **params)
+    return x
+
+
+def add_transition(input_layer, n_outchannels, layer_id="",
+                   bn_axis=-1, dropout_rate=0.0, **params):
+
+    if params['mem_option'] >= 2:
+        raise Exception("Not yet implemented")
+
+    x = BatchNormalization(axis=bn_axis, name='transition_%s_bn1' % layer_id)(input_layer)
+    x = Activation('relu', name='transition_%s_relu1' % layer_id)(x)
+    x = Convolution2D(n_outchannels, 1, 1,
+                      name="transition_%s_conv" % layer_id,
+                      use_bias=False, kernel_initializer=he_normal_fan_out)(x)
+    if dropout_rate > 0:
+        x = Dropout(dropout_rate, name='transition_%s_dropout1' % layer_id)(x)
+    x = AveragePooling2D(pool_size=(2, 2), name='transition_%s_pool' % layer_id)(x)
+    return x
 
 
 def dense_connect_layer_standard(input_layer, layer_id="",
                                  bn_axis=-1,
                                  use_bottleneck=True,
-                                 growth_rate=32, dropout_rate = 0.0):
+                                 growth_rate=32, dropout_rate=0.0, **params):
 
     x = BatchNormalization(axis=bn_axis, name='dcl_stand_%s_bn1' % layer_id)(input_layer)
     x = Activation('relu', name='dcl_stand_%s_relu1' % layer_id)(x)
     if use_bottleneck:
         x = Convolution2D(4 * growth_rate, 1, 1,
-                          name="dcl_stand_%s_bottleneck_conv" % layer_id)(x)
+                          name="dcl_stand_%s_bottleneck_conv" % layer_id,
+                          use_bias=False, kernel_initializer=he_normal_fan_out)(x)
         if dropout_rate > 0:
             x = Dropout(dropout_rate, name='dcl_stand_%s_dropout1' % layer_id)(x)
         x = BatchNormalization(axis=bn_axis, name='dcl_stand_%s_bn2' % layer_id)(x)
-        x = Activation('relu', name='dcl_stand_%s_relu2')(x)
+        x = Activation('relu', name='dcl_stand_%s_relu2' % layer_id)(x)
 
     x = ZeroPadding2D((1, 1))(x)
     x = Convolution2D(growth_rate, 3, 3,
-                      name="dcl_stand_%s_conv1" % layer_id)(x)
+                      name="dcl_stand_%s_conv1" % layer_id,
+                      use_bias=False, kernel_initializer=he_normal_fan_out)(x)
     if dropout_rate > 0:
         x = Dropout(dropout_rate, name='dcl_stand_%s_dropout2' % layer_id)(x)
     return x
-
-
-
-
-def conv_block(x, stage, branch, nb_filter, dropout_rate=None, weight_decay=1e-4):
-    '''Apply BatchNorm, Relu, bottleneck 1x1 Conv2D, 3x3 Conv2D, and option dropout
-        # Arguments
-            x: input tensor
-            stage: index for dense block
-            branch: layer index within each dense block
-            nb_filter: number of filters
-            dropout_rate: dropout rate
-            weight_decay: weight decay factor
-    '''
-    eps = 1.1e-5
-    conv_name_base = 'conv' + str(stage) + '_' + str(branch)
-    relu_name_base = 'relu' + str(stage) + '_' + str(branch)
-
-    # 1x1 Convolution (Bottleneck layer)
-    inter_channel = nb_filter * 4
-    x = BatchNormalization(epsilon=eps, axis=concat_axis, name=conv_name_base+'_x1_bn')(x)
-    x = Scale(axis=concat_axis, name=conv_name_base+'_x1_scale')(x)
-    x = Activation('relu', name=relu_name_base+'_x1')(x)
-    x = Convolution2D(inter_channel, 1, 1, name=conv_name_base+'_x1', bias=False)(x)
-
-    if dropout_rate:
-        x = Dropout(dropout_rate)(x)
-
-    # 3x3 Convolution
-    x = BatchNormalization(epsilon=eps, axis=concat_axis, name=conv_name_base+'_x2_bn')(x)
-    x = Scale(axis=concat_axis, name=conv_name_base+'_x2_scale')(x)
-    x = Activation('relu', name=relu_name_base+'_x2')(x)
-    x = ZeroPadding2D((1, 1), name=conv_name_base+'_x2_zeropadding')(x)
-    x = Convolution2D(nb_filter, 3, 3, name=conv_name_base+'_x2', bias=False)(x)
-
-    if dropout_rate:
-        x = Dropout(dropout_rate)(x)
-
-    return x
-
-
-def transition_block(x, stage, nb_filter, compression=1.0, dropout_rate=None, weight_decay=1E-4):
-    ''' Apply BatchNorm, 1x1 Convolution, averagePooling, optional compression, dropout
-        # Arguments
-            x: input tensor
-            stage: index for dense block
-            nb_filter: number of filters
-            compression: calculated as 1 - reduction. Reduces the number of feature maps in the transition block.
-            dropout_rate: dropout rate
-            weight_decay: weight decay factor
-    '''
-
-    eps = 1.1e-5
-    conv_name_base = 'conv' + str(stage) + '_blk'
-    relu_name_base = 'relu' + str(stage) + '_blk'
-    pool_name_base = 'pool' + str(stage)
-
-    x = BatchNormalization(epsilon=eps, axis=concat_axis, name=conv_name_base+'_bn')(x)
-    x = Scale(axis=concat_axis, name=conv_name_base+'_scale')(x)
-    x = Activation('relu', name=relu_name_base)(x)
-    x = Convolution2D(int(nb_filter * compression), 1, 1, name=conv_name_base, bias=False)(x)
-
-    if dropout_rate:
-        x = Dropout(dropout_rate)(x)
-
-    x = AveragePooling2D((2, 2), strides=(2, 2), name=pool_name_base)(x)
-
-    return x
-
-
-def dense_block(x, stage, nb_layers, nb_filter, growth_rate, dropout_rate=None, weight_decay=1e-4, grow_nb_filters=True):
-    ''' Build a dense_block where the output of each conv_block is fed to subsequent ones
-        # Arguments
-            x: input tensor
-            stage: index for dense block
-            nb_layers: the number of layers of conv_block to append to the model.
-            nb_filter: number of filters
-            growth_rate: growth rate
-            dropout_rate: dropout rate
-            weight_decay: weight decay factor
-            grow_nb_filters: flag to decide to allow number of filters to grow
-    '''
-
-    eps = 1.1e-5
-    concat_feat = x
-
-    for i in range(nb_layers):
-        branch = i+1
-        x = conv_block(concat_feat, stage, branch, growth_rate, dropout_rate, weight_decay)
-        concat_feat = merge([concat_feat, x], mode='concat', concat_axis=concat_axis,
-                            name='concat_'+str(stage)+'_'+str(branch))
-
-        if grow_nb_filters:
-            nb_filter += growth_rate
-
-    return concat_feat, nb_filter
-

@@ -30,8 +30,12 @@ def classification_predict(model,
         if verbose > 0:
             print("--", total_counter, '/', ll)
         for i in range(s):
-            df.loc[total_counter, :] = (info[i][0] + '.jpg',) + tuple(y_pred[i, :])
+            df.loc[total_counter, :] = ('test_' + info[i][0] + '.jpg',) + tuple(y_pred[i, :])
             total_counter += 1
 
     df = df.apply(pd.to_numeric, errors='ignore')
     return df
+
+
+def create_submission(df, info):
+    pass

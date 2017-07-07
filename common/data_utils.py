@@ -35,11 +35,17 @@ train_jpg_ids = [s[len(os.path.join(TRAIN_DATA, "jpg"))+1+len('train_'):-4] for 
 if len(train_jpg_files) == 0:
     print("No trainined data found at %s " % TRAIN_DATA)
 
-test_jpg_files = glob(os.path.join(TEST_DATA, "jpg", "*.jpg"))
+test_jpg_files = glob(os.path.join(TEST_DATA, "jpg", "test_*.jpg"))
 test_jpg_ids = [s[len(os.path.join(TEST_DATA, "jpg"))+1+len('test_'):-4] for s in test_jpg_files]
 
+test_jpg_additional_files = glob(os.path.join(TEST_DATA, "jpg", "file_*.jpg"))
+test_jpg_additional_ids = [s[len(os.path.join(TEST_DATA, "jpg"))+1+len('file_'):-4] for s in test_jpg_additional_files]
+
 if len(test_jpg_ids) == 0:
-    print("No data found at %s " % TEST_DATA)
+    print("No test data found at %s " % TEST_DATA)
+
+if len(test_jpg_additional_ids) == 0:
+    print("No additional test data found at %s " % TEST_DATA)
 
 
 def get_unique_tags(df):
@@ -151,6 +157,10 @@ def get_filename(image_id, image_type):
         ext = 'jpg' if 'jpg' in image_type else 'tif'
         data_path = os.path.join(TEST_DATA, ext)
         prefix = 'test_'
+    elif "ATest" in image_type:
+        ext = 'jpg' if 'jpg' in image_type else 'tif'
+        data_path = os.path.join(TEST_DATA, ext)
+        prefix = 'file_'
     else:
         raise Exception("Image type '%s' is not recognized" % image_type)
 

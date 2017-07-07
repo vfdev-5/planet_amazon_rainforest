@@ -32,12 +32,12 @@ from xy_providers import image_label_provider
 from models.keras_metrics import mae_with_false_negatives
 
 
-cnn = get_squeezenet2((224, 224, 3), 17)
+cnn = get_squeezenet2((256, 256, 3), 17)
 cnn.summary()
 
 # Setup configuration
 
-seed = 2017
+seed = 54321
 np.random.seed(seed)
 
 trainval_id_type_list = [(image_id, "Train_jpg") for image_id in train_jpg_ids]
@@ -60,12 +60,12 @@ params = {
     'normalize_data': True,
     'normalization': 'vgg',
 
-    'image_size': (224, 224),
+    'image_size': (256, 256),
 
     # Learning rate scheduler
     'lr_kwargs': {
         'lr': 0.01,
-        'a': 0.955,
+        'a': 0.956,
         'init_epoch': 0
     },
     'lr_decay_f': exp_decay,
