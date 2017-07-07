@@ -23,7 +23,7 @@ def jaccard_int_index(y_true, y_pred):
 
 
 def false_negatives(Y_true, Y_pred):
-    return K.sum(K.round(K.clip(Y_true - Y_pred, 0, 1)))
+    return K.mean(K.round(K.clip(Y_true - Y_pred, 0, 1)))
 
 
 def categorical_crossentropy_with_mae(y_true, y_pred):
@@ -33,8 +33,7 @@ def categorical_crossentropy_with_mae(y_true, y_pred):
 
 
 def mae_with_false_negatives(Y_true, Y_pred):
-    # 1.0 / 17.0 = 0.058823529411764705
-    return mae(Y_true, Y_pred) + 0.058823529411764705 * false_negatives(Y_true, Y_pred)
+    return mae(Y_true, Y_pred) + false_negatives(Y_true, Y_pred)
 
 
 def precision(y_true, y_pred):
