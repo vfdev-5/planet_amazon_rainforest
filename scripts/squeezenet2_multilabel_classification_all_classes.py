@@ -54,8 +54,8 @@ params = {
     'network': get_squeezenet2,
     'optimizer': 'adadelta',
     'loss': mae_with_false_negatives,
-    'nb_epochs': 30,
-    'batch_size': 128,  # !!! CHECK BEFORE LOAD TO FLOYD
+    'nb_epochs': 20,
+    'batch_size': 176,  # !!! CHECK BEFORE LOAD TO FLOYD
 
     'normalize_data': True,
     'normalization': 'vgg',
@@ -65,7 +65,7 @@ params = {
     # Learning rate scheduler
     'lr_kwargs': {
         'lr': 0.01,
-        'a': 0.93,
+        'a': 0.955,
         'init_epoch': 0
     },
     'lr_decay_f': exp_decay,
@@ -75,7 +75,7 @@ params = {
     'on_plateau_kwargs': {
         'monitor': 'val_loss',
         'factor': 0.1,
-        'patience': 5,
+        'patience': 3,
         'verbose': 1
     },
 
