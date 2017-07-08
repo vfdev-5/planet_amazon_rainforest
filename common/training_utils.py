@@ -166,11 +166,14 @@ def get_gen_flow(id_type_list, **params):
             gen.mean = npzfile['mean']
             gen.std = npzfile['std']
 
+    # Ensure that all batches have the same size in training phase
+    ll = len(id_type_list) if 'test_mode' in params and params['test_mode'] \
+        else (len(id_type_list) // batch_size) * batch_size
     flow = gen.flow(xy_provider(id_type_list,
                                 channels_first=channels_first,
                                 **params),
-                    # Ensure that all batches have the same size
-                    (len(id_type_list) // batch_size) * batch_size,
+
+                    ll,
                     seed=seed,
                     batch_size=batch_size)
     return gen, flow

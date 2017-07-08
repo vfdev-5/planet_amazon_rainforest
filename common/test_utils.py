@@ -1,5 +1,10 @@
+
+import os
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
+
 
 # Project
 from data_utils import unique_tags
@@ -32,7 +37,7 @@ def classification_predict(model,
             print("--", total_counter, '/', ll)
         for i in range(s):
             prefix = 'file_' if 'ATest' in info[i][1] else 'test_'
-            df.loc[total_counter, :] = (prefix + info[i][0] + '.jpg',) + tuple(y_pred[i, :])
+            df.loc[total_counter, :] = (prefix + info[i][0],) + tuple(y_pred[i, :])
             total_counter += 1
 
     df = df.apply(pd.to_numeric, errors='ignore')
@@ -40,4 +45,33 @@ def classification_predict(model,
 
 
 def create_submission(df, info):
-    pass
+    _df = df.copy()
+    thresholds = {
+        'agriculture': 0.5,
+        'artisinal_mine': 0.5,
+        'bare_ground': 0.5,
+        'blooming': 0.5,
+        'blow_down': 0.5,
+        'clear': 0.5,
+        'cloudy': 0.5,
+        'conventional_mine': 0.5,
+        'cultivation': 0.5,
+        'habitation': 0.5,
+        'haze': 0.5,
+        'partly_cloudy': 0.5,
+        'primary': 0.5,
+        'road': 0.5,
+        'selective_logging': 0.5,
+        'slash_burn': 0.5,
+        'water': 0.5
+    }
+    for tag in unique_tags:
+        _df.loc[:, tag] = _df[tag].apply(lambda x : 1 if x > thresholds[tag] else 0)
+    _df['tags'] = _df[unique_tags].apply(lambda x: " ".join(np.array(unique_tags)[np.where(x.values)[0]]), axis=1)
+    _df['image_id'] = _df['image_name'].apply(lambda x: int(x[5:]) + (40669 if 'file_' in x else 0))
+    _df = _df.sort_values(by='image_id')[['image_name', 'tags']]
+
+    now = datetime.now()
+    sub_file = 'submission_' + info + '_' + str(now.strftime("%Y-%m-%d-%H-%M")) + '.csv'
+    sub_file = os.path.join('..', 'results', sub_file)
+    _df.to_csv(sub_file, index=False)
