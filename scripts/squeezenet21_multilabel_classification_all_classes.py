@@ -29,7 +29,7 @@ from data_utils import load_pretrained_model, get_label
 from data_utils import DataCache
 
 from xy_providers import image_label_provider
-from models.keras_metrics import mae_with_false_negatives
+from models.keras_metrics import binary_crossentropy_with_false_negatives
 
 
 cnn = get_squeezenet21((256, 256, 3), 17)
@@ -37,7 +37,7 @@ cnn.summary()
 
 # Setup configuration
 
-seed = 54321
+seed = 2017
 np.random.seed(seed)
 
 trainval_id_type_list = [(image_id, "Train_jpg") for image_id in train_jpg_ids]
@@ -53,9 +53,9 @@ params = {
 
     'network': get_squeezenet21,
     'optimizer': 'adadelta',
-    'loss': 'binary_crossentropy', # mae_with_false_negatives,
+    'loss': binary_crossentropy_with_false_negatives, # 'binary_crossentropy', # mae_with_false_negatives,
     'nb_epochs': 25,    # !!! CHECK BEFORE LOAD TO FLOYD
-    'batch_size': 176,  # !!! CHECK BEFORE LOAD TO FLOYD
+    'batch_size': 128,  # !!! CHECK BEFORE LOAD TO FLOYD
 
     'normalize_data': True,
     'normalization': 'vgg',
@@ -92,15 +92,12 @@ params['save_prefix_template'] = '{cnn_name}_all_classes_fold={fold_index}_seed=
 params['input_shape'] = params['image_size'] + (3,)
 params['n_classes'] = len(unique_tags)
 
-params['save_prefix_template'] = '{cnn_name}_all_classes_fold={fold_index}_seed=%i' % params['seed']
-params['input_shape'] = params['image_size'] + (3,)
-params['n_classes'] = len(unique_tags)
 
 # Start CV
 
 n_folds = 5
 val_fold_index = 0
-val_fold_indices = [0, ]  # !!! CHECK BEFORE LOAD TO FLOYD
+val_fold_indices = []  # !!! CHECK BEFORE LOAD TO FLOYD
 hists = []
 
 kf = KFold(n_splits=n_folds)

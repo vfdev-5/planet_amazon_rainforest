@@ -1,5 +1,5 @@
 import keras.backend as K
-from keras.losses import categorical_crossentropy, mae
+from keras.losses import categorical_crossentropy, mae, binary_crossentropy
 
 def jaccard_loss(y_true, y_pred):
     return 1.0 - jaccard_index(y_true, y_pred)
@@ -34,6 +34,10 @@ def categorical_crossentropy_with_mae(y_true, y_pred):
 
 def mae_with_false_negatives(Y_true, Y_pred):
     return mae(Y_true, Y_pred) + false_negatives(Y_true, Y_pred)
+
+
+def binary_crossentropy_with_false_negatives(Y_true, Y_pred):
+    return binary_crossentropy(Y_true, Y_pred) + false_negatives(Y_true, Y_pred)
 
 
 def precision(y_true, y_pred):
