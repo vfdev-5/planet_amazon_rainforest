@@ -221,7 +221,7 @@ def add_dense_block(input_layer, stage, layer_id, **params):
     x = input_layer
     for i in range(stage):
         x1 = add_layer(x, layer_id=layer_id + '_%i' % i, **params)
-        x = Concatenate(axis=params['concat_axis'])([x, x1])
+        x = Concatenate(axis=params['concat_axis'], name='concat_' + layer_id + '_%i' % i)([x, x1])
     return x
 
 
@@ -248,7 +248,7 @@ def add_transition(input_layer, n_outchannels, layer_id="",
                       use_bias=False, kernel_initializer=he_normal_fan_out)(x)
     if dropout_rate > 0:
         x = Dropout(dropout_rate, name='transition_%s_dropout1' % layer_id)(x)
-    x = AveragePooling2D(pool_size=(2, 2), name='transition_%s_pool' % layer_id)(x)
+    x = AveragePooling2D(pool_size=(2, 2), strides=(2, 2), name='transition_%s_pool' % layer_id)(x)
     return x
 
 

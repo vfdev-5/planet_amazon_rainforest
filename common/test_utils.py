@@ -7,6 +7,7 @@ from training_utils import get_val_imgaug_seq, get_gen_flow
 
 # ###### Classification #######
 
+
 def classification_predict(model,
                            test_id_type_list,
                            **params):
@@ -30,7 +31,8 @@ def classification_predict(model,
         if verbose > 0:
             print("--", total_counter, '/', ll)
         for i in range(s):
-            df.loc[total_counter, :] = ('test_' + info[i][0] + '.jpg',) + tuple(y_pred[i, :])
+            prefix = 'file_' if 'ATest' in info[i][1] else 'test_'
+            df.loc[total_counter, :] = (prefix + info[i][0] + '.jpg',) + tuple(y_pred[i, :])
             total_counter += 1
 
     df = df.apply(pd.to_numeric, errors='ignore')

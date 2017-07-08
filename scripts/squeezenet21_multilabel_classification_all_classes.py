@@ -54,7 +54,7 @@ params = {
     'network': get_squeezenet21,
     'optimizer': 'adadelta',
     'loss': mae_with_false_negatives,
-    'nb_epochs': 20,
+    'nb_epochs': 25,
     'batch_size': 176,  # !!! CHECK BEFORE LOAD TO FLOYD
 
     'normalize_data': True,
@@ -100,7 +100,7 @@ params['n_classes'] = len(unique_tags)
 
 n_folds = 5
 val_fold_index = 0
-val_fold_indices = [0, ]
+val_fold_indices = [1, 2, 3, 4]  # !!! CHECK BEFORE LOAD TO FLOYD
 hists = []
 
 kf = KFold(n_splits=n_folds)
