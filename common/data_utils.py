@@ -38,8 +38,12 @@ if len(train_jpg_files) == 0:
 test_jpg_files = glob(os.path.join(TEST_DATA, "jpg", "test_*.jpg"))
 test_jpg_ids = [s[len(os.path.join(TEST_DATA, "jpg"))+1+len('test_'):-4] for s in test_jpg_files]
 
-test_jpg_additional_files = glob(os.path.join(TEST_DATA, "jpg", "file_*.jpg"))
-test_jpg_additional_ids = [s[len(os.path.join(TEST_DATA, "jpg"))+1+len('file_'):-4] for s in test_jpg_additional_files]
+additional_jpg_folder = 'jpg'
+if os.path.exists(os.path.join(TEST_DATA, "jpg-additional")):
+    additional_jpg_folder = "jpg-additional"
+
+test_jpg_additional_files = glob(os.path.join(TEST_DATA, additional_jpg_folder, "file_*.jpg"))
+test_jpg_additional_ids = [s[len(os.path.join(TEST_DATA, additional_jpg_folder))+1+len('file_'):-4] for s in test_jpg_additional_files]
 
 if len(test_jpg_ids) == 0:
     print("No test data found at %s " % TEST_DATA)
