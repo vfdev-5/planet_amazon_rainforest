@@ -65,8 +65,8 @@ params = {
     # Learning rate scheduler
     'lr_kwargs': {
         'lr': 0.01,
-        'a': 0.956,
-        'init_epoch': 0
+        'a': 0.95,
+        'init_epoch': 4
     },
     'lr_decay_f': exp_decay,
 
@@ -137,7 +137,7 @@ n_runs = 2
 n_folds = 5
 run_counter = 0
 cv_mean_scores = np.zeros((n_runs, n_folds))
-val_fold_indices = []  # !!! CHECK BEFORE LOAD TO FLOYD
+val_fold_indices = [4,]  # !!! CHECK BEFORE LOAD TO FLOYD
 
 params['pretrained_model'] = 'load_best'
 
