@@ -82,7 +82,7 @@ params = {
     'cache': cache,
 
 #     'class_index': 0,
-#     'pretrained_model': 'load_best',
+    'pretrained_model': 'load_best',
 #     'pretrained_model': os.path.join(GENERATED_DATA, "weights", ""),
 
     'output_path': OUTPUT_PATH,
@@ -97,7 +97,7 @@ params['n_classes'] = len(unique_tags)
 
 n_folds = 5
 val_fold_index = 0
-val_fold_indices = []  # !!! CHECK BEFORE LOAD TO FLOYD
+val_fold_indices = [4, ]  # !!! CHECK BEFORE LOAD TO FLOYD
 hists = []
 
 kf = KFold(n_splits=n_folds)
@@ -137,7 +137,7 @@ n_runs = 2
 n_folds = 5
 run_counter = 0
 cv_mean_scores = np.zeros((n_runs, n_folds))
-val_fold_indices = [4,]  # !!! CHECK BEFORE LOAD TO FLOYD
+val_fold_indices = []  # !!! CHECK BEFORE LOAD TO FLOYD
 
 params['pretrained_model'] = 'load_best'
 
