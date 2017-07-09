@@ -257,21 +257,21 @@ def dense_connect_layer_standard(input_layer, layer_id="",
                                  use_bottleneck=True,
                                  growth_rate=32, dropout_rate=0.0, **params):
 
-    x = BatchNormalization(axis=bn_axis, name='dcl_stand_%s_bn1' % layer_id)(input_layer)
-    x = Activation('relu', name='dcl_stand_%s_relu1' % layer_id)(x)
+    x = BatchNormalization(axis=bn_axis, name='dcl_standard_%s_bn1' % layer_id)(input_layer)
+    x = Activation('relu', name='dcl_standard_%s_relu1' % layer_id)(x)
     if use_bottleneck:
         x = Convolution2D(4 * growth_rate, 1, 1,
-                          name="dcl_stand_%s_bottleneck_conv" % layer_id,
+                          name="dcl_standard_%s_bottleneck_conv" % layer_id,
                           use_bias=False, kernel_initializer=he_normal_fan_out)(x)
         if dropout_rate > 0:
-            x = Dropout(dropout_rate, name='dcl_stand_%s_dropout1' % layer_id)(x)
-        x = BatchNormalization(axis=bn_axis, name='dcl_stand_%s_bn2' % layer_id)(x)
-        x = Activation('relu', name='dcl_stand_%s_relu2' % layer_id)(x)
+            x = Dropout(dropout_rate, name='dcl_standard_%s_dropout1' % layer_id)(x)
+        x = BatchNormalization(axis=bn_axis, name='dcl_standard_%s_bn2' % layer_id)(x)
+        x = Activation('relu', name='dcl_standard_%s_relu2' % layer_id)(x)
 
     x = ZeroPadding2D((1, 1))(x)
     x = Convolution2D(growth_rate, 3, 3,
-                      name="dcl_stand_%s_conv1" % layer_id,
+                      name="dcl_standard_%s_conv1" % layer_id,
                       use_bias=False, kernel_initializer=he_normal_fan_out)(x)
     if dropout_rate > 0:
-        x = Dropout(dropout_rate, name='dcl_stand_%s_dropout2' % layer_id)(x)
+        x = Dropout(dropout_rate, name='dcl_standard_%s_dropout2' % layer_id)(x)
     return x

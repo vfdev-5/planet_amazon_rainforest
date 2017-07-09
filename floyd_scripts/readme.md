@@ -3,13 +3,15 @@
 ## How to launch training on floydhub
 
 ```
-floyd run --env tensorflow-1.2 --gpu --data Kr5VngRdzGWSUxD7dCtkee "python start_all.py"
-```
-or EOL dependent falsy version
-```
-floyd run --env tensorflow-1.2 --gpu --data Kr5VngRdzGWSUxD7dCtkee "sh start_all.sh"
+floyd run --env tensorflow-1.2 --gpu --data Kr5VngRdzGWSUxD7dCtkee "python train.py"
 ```
 
+
+## How to launch predictions on floydhub
+
+```
+floyd run --env tensorflow-1.2 --gpu --data Kr5VngRdzGWSUxD7dCtkee:input_1 --data NkXWSWfHP83nemMueZjiK4:input_2 "python predict.py"
+```
 
 ## Mode jupyter on trained model
 

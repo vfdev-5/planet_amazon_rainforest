@@ -25,10 +25,10 @@ mkdir -p /output/test
 tar -xf /output/train/train-jpg.tar -C /output/train
 mv /output/train/train-jpg /output/train/jpg
 rm /output/train/train-jpg.tar
-rm /output/train/train-jpg.tar.7z
+rm /output/train-jpg.tar.7z
 
 7z x /output/test-jpg.tar.7z -o/output/test
 tar -xf /output/test/test-jpg.tar -C /output/test
 mv /output/test/test-jpg /output/test/jpg
 rm /output/test/test-jpg.tar
-rm /output/test/test-jpg.tar.7z
+rm /output/test-jpg.tar.7z
