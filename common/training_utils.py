@@ -4,6 +4,7 @@ import sys
 from datetime import datetime
 
 import numpy as np
+import pandas as pd
 
 from keras.callbacks import ModelCheckpoint, CSVLogger, LearningRateScheduler, ReduceLROnPlateau, Callback
 import keras.backend as K
@@ -25,7 +26,7 @@ if imgaug_contrib_path not in sys.path:
 from preprocessing.image.generators import ImageDataGenerator
 from imgaug.imgaug import augmenters as iaa
 
-from data_utils import GENERATED_DATA, unique_tags
+from data_utils import GENERATED_DATA, OUTPUT_PATH, unique_tags
 from metrics import score
 from sklearn.metrics import mean_absolute_error
 from postproc import pred_threshold
@@ -336,6 +337,8 @@ def classification_validate(model,
     assert 'seed' in params, "Need seed, params = {}".format(params)
     assert 'normalize_data' in params, "Need normalize_data"
     verbose = 1 if 'verbose' not in params else params['verbose']
+    save_predictions = False if 'save_predictions' not in params else params['save_predictions']
+    save_predictions_id = '' if 'save_predictions_id' not in params else params['save_predictions_id']
 
     normalize_data = params['normalize_data']
     if normalize_data:
@@ -354,6 +357,7 @@ def classification_validate(model,
 
     y_true_total = np.zeros((len(val_id_type_list), len(unique_tags)))
     y_pred_total = np.zeros_like(y_true_total)
+    info_total = np.empty((y_true_total.shape[0], ), dtype=str)
     counter = 0
     for x, y_true, info in val_flow:
         if verbose > 0:
@@ -362,12 +366,21 @@ def classification_validate(model,
         start = counter * s
         end = min((counter + 1) * s, len(val_id_type_list))
         y_true_total[start:end, :] = y_true
+        info_total[start:end] = [('file_' if 'ATest' in i[1] else 'test_') + i[0] for i in info]
 
         y_pred = model.predict(x)
         y_pred2 = pred_threshold(y_pred)
         y_pred_total[start:end, :] = y_pred2
 
         counter += 1
+
+    if save_predictions:
+        df = pd.DataFrame(columns=('image_name',) + tuple(unique_tags))
+        df['image_name'] = info_total
+        df[unique_tags] = y_pred_total
+        df.to_csv(os.path.join(OUTPUT_PATH, 'val_predictions_' + save_predictions_id + '.csv'), index=False)
+        if verbose > 0:
+            print("Saved predictions with id: %s" % save_predictions_id)
 
     total_f2 = score(y_true_total, y_pred_total)
     total_mae = mean_absolute_error(y_true_total, y_pred_total)

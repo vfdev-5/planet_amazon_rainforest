@@ -44,27 +44,28 @@ def classification_predict(model,
     return df
 
 
-def create_submission(df, info):
+def create_submission(df, info, thresholds=None):
     _df = df.copy()
-    thresholds = {
-        'agriculture': 0.5,
-        'artisinal_mine': 0.5,
-        'bare_ground': 0.5,
-        'blooming': 0.5,
-        'blow_down': 0.5,
-        'clear': 0.5,
-        'cloudy': 0.5,
-        'conventional_mine': 0.5,
-        'cultivation': 0.5,
-        'habitation': 0.5,
-        'haze': 0.5,
-        'partly_cloudy': 0.5,
-        'primary': 0.5,
-        'road': 0.5,
-        'selective_logging': 0.5,
-        'slash_burn': 0.5,
-        'water': 0.5
-    }
+    if thresholds is None:
+        thresholds = {
+            'agriculture': 0.5,
+            'artisinal_mine': 0.5,
+            'bare_ground': 0.5,
+            'blooming': 0.5,
+            'blow_down': 0.5,
+            'clear': 0.5,
+            'cloudy': 0.5,
+            'conventional_mine': 0.5,
+            'cultivation': 0.5,
+            'habitation': 0.5,
+            'haze': 0.5,
+            'partly_cloudy': 0.5,
+            'primary': 0.5,
+            'road': 0.5,
+            'selective_logging': 0.5,
+            'slash_burn': 0.5,
+            'water': 0.5
+        }
     for tag in unique_tags:
         _df.loc[:, tag] = _df[tag].apply(lambda x : 1 if x > thresholds[tag] else 0)
     _df['tags'] = _df[unique_tags].apply(lambda x: " ".join(np.array(unique_tags)[np.where(x.values)[0]]), axis=1)
