@@ -132,7 +132,7 @@ while run_counter < n_runs:
         params['seed'] += run_counter - 1
 
         params['save_predictions_id'] = params['save_prefix'] + \
-                                        'run=%i_fold=%i' % (run_counter, val_fold_index) + \
+                                        '_run=%i' % run_counter + \
                                         '_' + str(now.strftime("%Y-%m-%d-%H-%M"))
 
         f2, mae = validate(cnn, val_id_type_list, verbose=0, **params)
