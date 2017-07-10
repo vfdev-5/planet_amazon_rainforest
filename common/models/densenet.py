@@ -55,6 +55,7 @@ def DenseNet(include_top=True, weights='imagenet',
             depth: possible values {121, 161, 169, 201, 'custom'}, corresponds to DenseNet-121, DenseNet-169 and DenseNet-161
             stages: optional, used with type = 'custom', should have 4 integer values, e.g. (6, 12, 24, 32)
             growth_rate: number of filters to add per dense block, recommended values for ImageNet, k=32 or k=48
+            n_channels: initial number of filters in the 1st convolution, by default: 2 * growth_rate
             reduction: reduction factor of transition blocks.
             dropout_rate: dropout rate
             use_bottleneck: use bottleneck layers
@@ -106,7 +107,7 @@ def DenseNet(include_top=True, weights='imagenet',
     _params["dropout_rate"] = 0.2 if 'dropout_rate' not in _params else _params['dropout_rate']
     _params["use_bottleneck"] = True if 'use_bottleneck' not in _params else _params['use_bottleneck']
 
-    n_channels = 2 * growth_rate
+    n_channels = 2 * growth_rate if 'n_channels' not in _params else _params['n_channels']
 
     # Determine proper input shape
     input_shape = _obtain_input_shape(input_shape,
@@ -229,7 +230,6 @@ def add_layer(input_layer, **params):
 
     if params['mem_option'] >= 2:
         raise Exception("Not yet implemented")
-        # x = dense_connect_layer_custom(input_layer, **params)
     else:
         x = dense_connect_layer_standard(input_layer, **params)
     return x
@@ -257,21 +257,21 @@ def dense_connect_layer_standard(input_layer, layer_id="",
                                  use_bottleneck=True,
                                  growth_rate=32, dropout_rate=0.0, **params):
 
-    x = BatchNormalization(axis=bn_axis, name='dcl_standard_%s_bn1' % layer_id)(input_layer)
-    x = Activation('relu', name='dcl_standard_%s_relu1' % layer_id)(x)
+    x = BatchNormalization(axis=bn_axis, name='dense-block_%s_bn1' % layer_id)(input_layer)
+    x = Activation('relu', name='dense-block_%s_relu1' % layer_id)(x)
     if use_bottleneck:
         x = Convolution2D(4 * growth_rate, 1, 1,
-                          name="dcl_standard_%s_bottleneck_conv" % layer_id,
+                          name="dense-block_%s_bottleneck_conv" % layer_id,
                           use_bias=False, kernel_initializer=he_normal_fan_out)(x)
         if dropout_rate > 0:
-            x = Dropout(dropout_rate, name='dcl_standard_%s_dropout1' % layer_id)(x)
-        x = BatchNormalization(axis=bn_axis, name='dcl_standard_%s_bn2' % layer_id)(x)
-        x = Activation('relu', name='dcl_standard_%s_relu2' % layer_id)(x)
+            x = Dropout(dropout_rate, name='dense-block_%s_dropout1' % layer_id)(x)
+        x = BatchNormalization(axis=bn_axis, name='dense-block_%s_bn2' % layer_id)(x)
+        x = Activation('relu', name='dense-block_%s_relu2' % layer_id)(x)
 
     x = ZeroPadding2D((1, 1))(x)
     x = Convolution2D(growth_rate, 3, 3,
-                      name="dcl_standard_%s_conv1" % layer_id,
+                      name="dense-block_%s_conv1" % layer_id,
                       use_bias=False, kernel_initializer=he_normal_fan_out)(x)
     if dropout_rate > 0:
-        x = Dropout(dropout_rate, name='dcl_standard_%s_dropout2' % layer_id)(x)
+        x = Dropout(dropout_rate, name='dense-block_%s_dropout2' % layer_id)(x)
     return x
