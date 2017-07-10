@@ -357,7 +357,7 @@ def classification_validate(model,
 
     y_true_total = np.zeros((len(val_id_type_list), len(unique_tags)))
     y_pred_total = np.zeros_like(y_true_total)
-    info_total = np.empty((y_true_total.shape[0], ), dtype=str)
+    info_total = np.empty((y_true_total.shape[0], ), dtype=np.object)
     counter = 0
     for x, y_true, info in val_flow:
         if verbose > 0:
@@ -369,8 +369,7 @@ def classification_validate(model,
         info_total[start:end] = [('file_' if 'ATest' in i[1] else 'test_') + i[0] for i in info]
 
         y_pred = model.predict(x)
-        y_pred2 = pred_threshold(y_pred)
-        y_pred_total[start:end, :] = y_pred2
+        y_pred_total[start:end, :] = y_pred
 
         counter += 1
 
@@ -382,8 +381,9 @@ def classification_validate(model,
         if verbose > 0:
             print("Saved predictions with id: %s" % save_predictions_id)
 
-    total_f2 = score(y_true_total, y_pred_total)
-    total_mae = mean_absolute_error(y_true_total, y_pred_total)
+    y_pred_total2 = pred_threshold(y_pred_total)
+    total_f2 = score(y_true_total, y_pred_total2)
+    total_mae = mean_absolute_error(y_true_total, y_pred_total2)
 
     if verbose > 0:
         print("Total f2, mae : ", total_f2, total_mae)
