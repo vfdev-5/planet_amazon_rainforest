@@ -366,7 +366,7 @@ def classification_validate(model,
         start = counter * s
         end = min((counter + 1) * s, len(val_id_type_list))
         y_true_total[start:end, :] = y_true
-        info_total[start:end] = [('file_' if 'ATest' in i[1] else 'test_') + i[0] for i in info]
+        info_total[start:end] = ['train_' + i[0] for i in info]
 
         y_pred = model.predict(x)
         y_pred_total[start:end, :] = y_pred
