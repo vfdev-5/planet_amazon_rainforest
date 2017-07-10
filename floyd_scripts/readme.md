@@ -6,6 +6,10 @@
 floyd run --env tensorflow-1.2 --gpu --data Kr5VngRdzGWSUxD7dCtkee "python train.py"
 ```
 
+```
+floyd run --env tensorflow-1.2 --gpu --data Kr5VngRdzGWSUxD7dCtkee "python val_predict.py"
+```
+
 
 ## How to launch predictions on floydhub
 
