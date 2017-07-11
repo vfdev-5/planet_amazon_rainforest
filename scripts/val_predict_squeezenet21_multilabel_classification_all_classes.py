@@ -100,7 +100,7 @@ val_fold_indices = []  # !!! CHECK BEFORE LOAD TO FLOYD
 
 params['pretrained_model'] = 'load_best'
 params['save_predictions'] = True
-params[''] =
+
 now = datetime.now()
 
 _trainval_id_type_list = np.array(trainval_id_type_list)
