@@ -23,12 +23,11 @@ def get_densenet(depth, input_shape, n_classes, **params):
     weights = 'imagenet' if 'weights' not in params else params['weights']
     final_activation = 'sigmoid'
 
-    dnet = DenseNet(input_shape=input_shape, classes=n_classes, include_top=False, weights=weights, depth=depth)
+    dnet = DenseNet(input_shape=input_shape, include_top=False, weights=weights, depth=depth)
 
     x = dnet.outputs[0]
-    x = GlobalAveragePooling2D()(x)
-
-    out = Activation(final_activation, name='loss')(x)
+    x = GlobalAveragePooling2D(name="final_avg_pooling")(x)
+    out = Dense(n_classes, activation=final_activation, name='predictions')(x)
     model = Model(inputs=dnet.inputs, outputs=out)
 
     # Set some layers trainable

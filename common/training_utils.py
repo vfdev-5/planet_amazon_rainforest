@@ -203,7 +203,7 @@ class EpochValidationCallback(Callback):
         self.ev_params['verbose'] = 0
         assert 'seed' in self.ev_params, "Need seed, params: {}".format(self.ev_params)
 
-    def on_epoch_begin(self, epoch, logs=None):
+    def on_epoch_end(self, epoch, logs=None):
         f2, mae = classification_validate(self.model, self.val_id_type_list, **self.ev_params)
         print("\nEpoch validation: f2 = %f, mae=%f \n" % (f2, mae))
 
