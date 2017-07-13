@@ -65,7 +65,7 @@ params = {
     'lr_kwargs': {
         'lr': 0.01,
         'a': 0.95,
-        'init_epoch': 4
+        'init_epoch': 0
     },
     'lr_decay_f': exp_decay,
 
