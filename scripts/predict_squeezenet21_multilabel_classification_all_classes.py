@@ -104,8 +104,7 @@ test_id_type_list.extend(test_id_type_list1)
 test_id_type_list.extend(test_id_type_list2)
 print(len(test_id_type_list))
 
-n_folds = 5
-# predictions = []
+n_folds = 2 ## !!! CHECK THIS
 run_counter = 0
 n_runs = 3
 params['pretrained_model'] = 'load_best'
