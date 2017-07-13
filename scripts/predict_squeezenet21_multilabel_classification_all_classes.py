@@ -106,7 +106,7 @@ print(len(test_id_type_list))
 
 n_folds = 2 ## !!! CHECK THIS
 run_counter = 0
-n_runs = 3
+n_runs = 2
 params['pretrained_model'] = 'load_best'
 now = datetime.now()
 
