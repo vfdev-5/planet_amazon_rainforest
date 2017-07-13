@@ -108,7 +108,6 @@ n_folds = 2 ## !!! CHECK THIS
 run_counter = 0
 n_runs = 3
 params['pretrained_model'] = 'load_best'
-info = params['save_prefix']
 now = datetime.now()
 
 while run_counter < n_runs:
@@ -128,6 +127,7 @@ while run_counter < n_runs:
 
         params['seed'] += run_counter - 1
         df = predict(cnn, test_id_type_list, **params)
+        info = params['save_prefix']
         sub_file = 'predictions__%i_%i' % (run_counter, val_fold_index) + info + str(now.strftime("%Y-%m-%d-%H-%M")) + '.csv'
         sub_file = os.path.join(OUTPUT_PATH, sub_file)
         df.to_csv(sub_file, index=False)
