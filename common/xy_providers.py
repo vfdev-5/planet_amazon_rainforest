@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 
 from image_utils import get_image_data
-from data_utils import get_caption, get_label, get_class_label_mask
+from data_utils import get_caption, get_label, get_class_label_mask, equalized_data_classes
 
 
 def image_class_labels_provider(image_id_type_list,
@@ -17,8 +17,6 @@ def image_class_labels_provider(image_id_type_list,
 
     if seed is not None:
         np.random.seed(seed)
-
-    class_label_mask = get_class_label_mask(class_index) if class_index is not None else None
 
     counter = 0
     image_id_type_list = list(image_id_type_list)
@@ -56,8 +54,7 @@ def image_class_labels_provider(image_id_type_list,
                 img = img.astype(np.float32) / 255.0
 
                 if class_index is not None:
-                    label = get_label(image_id, image_type)
-                    label = label * class_label_mask
+                    label = get_label(image_id, image_type, class_index=class_index)
                 else:
                     label = None
                 # fill the cache only at first time:

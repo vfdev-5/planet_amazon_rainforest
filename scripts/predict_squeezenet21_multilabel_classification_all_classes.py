@@ -43,7 +43,7 @@ trainval_id_type_list = [(image_id, "Train_jpg") for image_id in train_jpg_ids]
 np.random.shuffle(trainval_id_type_list)
 print(len(trainval_id_type_list))
 
-cache = DataCache(0)  # !!! CHECK BEFORE LOAD TO FLOYD
+cache = DataCache(10000)  # !!! CHECK BEFORE LOAD TO FLOYD
 
 params = {
     'seed': seed,
@@ -104,7 +104,7 @@ test_id_type_list.extend(test_id_type_list1)
 test_id_type_list.extend(test_id_type_list2)
 print(len(test_id_type_list))
 
-n_folds = 2 ## !!! CHECK THIS
+n_folds = 3  ## !!! CHECK THIS
 run_counter = 0
 n_runs = 2
 params['pretrained_model'] = 'load_best'
@@ -128,6 +128,6 @@ while run_counter < n_runs:
         params['seed'] += run_counter - 1
         df = predict(cnn, test_id_type_list, **params)
         info = params['save_prefix']
-        sub_file = 'predictions__%i_%i' % (run_counter, val_fold_index) + info + str(now.strftime("%Y-%m-%d-%H-%M")) + '.csv'
+        sub_file = 'predictions_%i_%i_' % (run_counter, val_fold_index) + info + "_" + str(now.strftime("%Y-%m-%d-%H-%M")) + '.csv'
         sub_file = os.path.join(OUTPUT_PATH, sub_file)
         df.to_csv(sub_file, index=False)

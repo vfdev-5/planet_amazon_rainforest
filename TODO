@@ -1,0 +1,8 @@
+# TODO
+
+## Main tasks
+[] Train DenseNet-121 model from scratch on 5 folds
+[] Train SqueezeNet on class 0. Use pretrained weights
+
+## Additional tasks
+[] How to compare test-additional with test and train
