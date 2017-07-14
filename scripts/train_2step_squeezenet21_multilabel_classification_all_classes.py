@@ -7,6 +7,10 @@ from datetime import datetime
 import warnings
 warnings.filterwarnings("ignore")
 
+try:
+    if __file__: exit
+except NameError:
+    __file__ = 'scripts/train_2step_squeezenet21_multilabel_classification_all_classes.py'
 
 # Project
 project_common_path = os.path.dirname(__file__)
@@ -43,7 +47,7 @@ trainval_id_type_list = [(image_id, "Train_jpg") for image_id in train_jpg_ids]
 np.random.shuffle(trainval_id_type_list)
 print(len(trainval_id_type_list))
 
-cache = DataCache(10000)  # !!! CHECK BEFORE LOAD TO FLOYD
+cache = DataCache(0)  # !!! CHECK BEFORE LOAD TO FLOYD
 
 params = {
     'seed': seed,
@@ -53,8 +57,8 @@ params = {
     'network': get_squeezenet21,
     'optimizer': 'adam',
     'loss': binary_crossentropy_with_false_negatives, # 'binary_crossentropy', # mae_with_false_negatives,
-    'nb_epochs': 50,    # !!! CHECK BEFORE LOAD TO FLOYD
-    'batch_size': 128,  # !!! CHECK BEFORE LOAD TO FLOYD
+    'nb_epochs': 1,    # !!! CHECK BEFORE LOAD TO FLOYD
+    'batch_size': 8,  # !!! CHECK BEFORE LOAD TO FLOYD
 
     'normalize_data': True,
     'normalization': 'vgg',

@@ -7,6 +7,11 @@ from datetime import datetime
 import warnings
 warnings.filterwarnings("ignore")
 
+try:
+    if __file__: exit
+except NameError:
+    __file__ = 'scripts/val_predict_squeezenet21_multilabel_classification_all_classes.py'
+
 # Project
 project_common_path = os.path.dirname(__file__)
 project_common_path = os.path.abspath(os.path.join(project_common_path, '..', 'common'))
