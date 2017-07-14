@@ -9,13 +9,11 @@ project_common_path = os.path.dirname(__file__)
 if 'INPUT_PATH' in os.environ:
     INPUT_PATH = os.environ['INPUT_PATH']
 else:
-#    INPUT_PATH = os.path.abspath("../input")
     INPUT_PATH = os.path.join(project_common_path, '..', 'input')
 
 if 'OUTPUT_PATH' in os.environ:
     OUTPUT_PATH = os.environ['OUTPUT_PATH']
 else:
-#    OUTPUT_PATH = os.path.abspath("../output")
     OUTPUT_PATH = os.path.join(project_common_path, '..', 'output')
 
 DATA_PATH = INPUT_PATH
