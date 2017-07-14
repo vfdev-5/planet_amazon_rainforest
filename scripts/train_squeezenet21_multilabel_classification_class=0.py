@@ -7,6 +7,10 @@ from datetime import datetime
 import warnings
 warnings.filterwarnings("ignore")
 
+try:
+    if __file__: exit
+except NameError:
+    __file__ = 'scripts/train_squeezenet21_multilabel_classification_class=0.py'
 
 # Project
 project_common_path = os.path.dirname(__file__)
