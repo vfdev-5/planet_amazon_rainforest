@@ -27,7 +27,7 @@ from keras.callbacks import Callback, ModelCheckpoint
 from keras import backend as K
 
 
-NB_DIR = os.getcwd()
+NB_DIR = os.path.abspath('../..')
 DATA_DIR = NB_DIR + '/data'
 BATCH_SIZE = 32
 
