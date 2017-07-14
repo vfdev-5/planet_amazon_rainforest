@@ -16,25 +16,22 @@ if not project_common_path in sys.path:
 
 import numpy as np
 
-from data_utils import get_id_type_list_for_class, OUTPUT_PATH, GENERATED_DATA, to_set, RESOURCES_PATH
+from data_utils import get_id_type_list_for_class, OUTPUT_PATH, GENERATED_DATA, to_set
 from training_utils import classification_train as train, classification_validate as validate
 from training_utils import exp_decay, step_decay
 
-from models.squeezenet_multiclassification import get_squeezenet21_rare_tags
+from models.resnet50_multiclassification import get_resnet
 
 from sklearn.model_selection import KFold
 from data_utils import to_set, equalized_data_classes, unique_tags, train_jpg_ids, TRAIN_ENC_CL_CSV
 from data_utils import load_pretrained_model, get_label
 from data_utils import DataCache
 
-from xy_providers import image_class_labels_provider
+from xy_providers import image_label_provider
 from models.keras_metrics import binary_crossentropy_with_false_negatives
 
 
-cnn = get_squeezenet21_rare_tags((256, 256, 3),
-                                 len(equalized_data_classes[0]),
-                                 class_index=0,
-                                 last_dense_name='d2_class_0')
+cnn = get_resnet(input_shape=(224, 224, 3), n_classes=17)
 cnn.summary()
 
 # Setup configuration
@@ -42,47 +39,27 @@ cnn.summary()
 seed = 2017
 np.random.seed(seed)
 
+trainval_id_type_list = [(image_id, "Train_jpg") for image_id in train_jpg_ids]
+np.random.shuffle(trainval_id_type_list)
+print(len(trainval_id_type_list))
+
 cache = DataCache(0)  # !!! CHECK BEFORE LOAD TO FLOYD
-
-class_index = 0
-
-trainval_id_type_list = get_id_type_list_for_class(class_index)
-
-class_indices = list(equalized_data_classes.keys())
-class_indices.remove(class_index)
-
-n_other_samples = int(len(trainval_id_type_list) * 1.0 / len(class_indices))
-
-for index in class_indices:
-    id_type_list = np.array(get_id_type_list_for_class(index))
-    id_type_list = list(to_set(id_type_list) - to_set(trainval_id_type_list))
-    np.random.shuffle(id_type_list)
-    trainval_id_type_list.extend(id_type_list[:n_other_samples])
-
-print(len(trainval_id_type_list), len(to_set(trainval_id_type_list)))
-
 
 params = {
     'seed': seed,
 
-    'xy_provider': image_class_labels_provider,
+    'xy_provider': image_label_provider,
 
-    'network': get_squeezenet21_rare_tags,
-    'network_kwargs': {
-        'input_shape': (256, 256, 3),
-        'weights': 'imagenet'
-    },
-    'n_classes': len(equalized_data_classes[class_index]),
-    'image_size': (256, 256),
-
+    'network': get_resnet,
     'optimizer': 'adadelta',
-    'loss': lambda Y_true, Y_pred: binary_crossentropy_with_false_negatives(Y_true, Y_pred, a=100.0),
-    'nb_epochs': 50,    # !!! CHECK BEFORE LOAD TO FLOYD
+    'loss': binary_crossentropy_with_false_negatives, # 'binary_crossentropy', # mae_with_false_negatives,
+    'nb_epochs': 30,    # !!! CHECK BEFORE LOAD TO FLOYD
     'batch_size': 16,  # !!! CHECK BEFORE LOAD TO FLOYD
 
     'normalize_data': True,
     'normalization': 'vgg',
 
+    'image_size': (224, 224),
 
     # Learning rate scheduler
     'lr_kwargs': {
@@ -97,28 +74,29 @@ params = {
     'on_plateau_kwargs': {
         'monitor': 'val_loss',
         'factor': 0.1,
-        'patience': 2,
+        'patience': 3,
         'verbose': 1
     },
 
     'cache': cache,
 
-    'class_index': class_index,
+    # 'class_index': 0,
     # 'pretrained_model': 'load_best',
-    # 'pretrained_model': os.path.join(GENERATED_DATA, "resources", ""),
-    # 'pretrained_model_template': os.path.join(RESOURCES_PATH,
-    #                                           "SqueezeNet21_all_classes_fold={fold_index}_seed=2017_40_val_loss=0.1216_val_precision=0.9153_val_recall=0.8670.h5"),
+    # 'pretrained_model': os.path.join(GENERATED_DATA, "weights", ""),
 
     'output_path': OUTPUT_PATH,
 }
 
-params['save_prefix_template'] = '{cnn_name}_classe=%i_fold={fold_index}_seed=%i' % (params['class_index'], params['seed'])
+params['save_prefix_template'] = '{cnn_name}_all_classes_fold={fold_index}_seed=%i' % params['seed']
+params['input_shape'] = params['image_size'] + (3,)
+params['n_classes'] = len(unique_tags)
+
 
 # Start CV
 
 n_folds = 5
 val_fold_index = 0
-val_fold_indices = [0, ]  # !!! CHECK BEFORE LOAD TO FLOYD
+val_fold_indices = []  # !!! CHECK BEFORE LOAD TO FLOYD
 hists = []
 
 kf = KFold(n_splits=n_folds)
@@ -131,26 +109,19 @@ for train_index, test_index in kf.split(trainval_id_type_list):
             val_fold_index += 1
             continue
 
-    params['samples_per_epoch'] = 5 * len(train_id_type_list)
-    params['nb_val_samples'] = int(1.5 * len(val_id_type_list))
-
     val_fold_index += 1
     print("\n\n ---- Validation fold index: ", val_fold_index, "/", n_folds)
 
     print(datetime.now(), len(train_id_type_list), len(val_id_type_list))
     assert len(to_set(train_id_type_list) & to_set(val_id_type_list)) == 0, "WTF"
 
-    cnn = params['network'](lr=params['lr_kwargs']['lr'], **params, **params['network_kwargs'])
-    params['save_prefix'] = params['save_prefix_template'].format(cnn_name=cnn.name, fold_index=val_fold_index-1)
+    weights = None if 'pretrained_model' in params else 'imagenet'
+    cnn = params['network'](lr=params['lr_kwargs']['lr'], weights=weights, **params)
+    params['save_prefix'] = params['save_prefix_template'].format(cnn_name=cnn.name, fold_index=val_fold_index - 1)
     print("\n {} - Loaded {} model ...".format(datetime.now(), cnn.name))
 
     if 'pretrained_model' in params:
         load_pretrained_model(cnn, **params)
-    elif 'pretrained_model_template' in params:
-        params['pretrained_model'] = params['pretrained_model_template'].format(fold_index=(val_fold_index-1) % 3)
-        print((val_fold_index-1) % 3)
-        print(params['pretrained_model'])
-        load_pretrained_model(cnn, by_name=True, **params)
 
     print("\n {} - Start training ...".format(datetime.now()))
     h = train(cnn, train_id_type_list, val_id_type_list, **params)
