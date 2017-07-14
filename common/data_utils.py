@@ -179,11 +179,12 @@ def get_caption(image_id, image_type):
     return TRAIN_CSV.loc[int(image_id), 'tags']
 
 
-def get_label(image_id, image_type, as_series=False):
+def get_label(image_id, image_type, as_series=False, class_index=None):
     assert "Train" in image_type, "Can get only train labels"
+    tags = unique_tags if class_index is None else equalized_data_classes[class_index]
     if as_series:
-        return TRAIN_ENC_CSV.loc[int(image_id), unique_tags]
-    return TRAIN_ENC_CSV.loc[int(image_id), unique_tags].values.astype(np.uint8)
+        return TRAIN_ENC_CSV.loc[int(image_id), tags]
+    return TRAIN_ENC_CSV.loc[int(image_id), tags].values.astype(np.uint8)
 
 
 def get_class_label_mask(class_index):
@@ -218,7 +219,7 @@ def find_best_weights_file(weights_files, field_name='val_loss', best_min=True):
     return best_weights_filename, best_value
 
 
-def load_pretrained_model(model, **params):
+def load_pretrained_model(model, by_name=False, **params):
 
     assert 'pretrained_model' in params, "pretrained_model is needed"
     assert 'save_prefix' in params, "save_prefix is needed"
@@ -230,11 +231,11 @@ def load_pretrained_model(model, **params):
         assert len(weights_files) > 0, "Failed to load weights"
         best_weights_filename, best_val_loss = find_best_weights_file(weights_files, field_name='val_loss')
         print("Load best loss weights: ", best_weights_filename, best_val_loss)
-        model.load_weights(best_weights_filename)
+        model.load_weights(best_weights_filename, by_name=by_name)
     else:
-        assert os.path.exists(params['pretrained_model']), "Not found pretrained model"
+        assert os.path.exists(params['pretrained_model']), "Not found pretrained model : %s" % params['pretrained_model']
         print("Load weights: ", params['pretrained_model'])
-        model.load_weights(params['pretrained_model'])
+        model.load_weights(params['pretrained_model'], by_name=by_name)
 
 
 class DataCache(object):

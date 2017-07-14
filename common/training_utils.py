@@ -339,6 +339,7 @@ def classification_validate(model,
     verbose = 1 if 'verbose' not in params else params['verbose']
     save_predictions = False if 'save_predictions' not in params else params['save_predictions']
     save_predictions_id = '' if 'save_predictions_id' not in params else params['save_predictions_id']
+    n_classes = len(unique_tags) if 'n_classes' not in params else params['n_classes']
 
     normalize_data = params['normalize_data']
     if normalize_data:
@@ -355,7 +356,7 @@ def classification_validate(model,
                                      imgaug_seq=val_seq,
                                      test_mode=True, **params)
 
-    y_true_total = np.zeros((len(val_id_type_list), len(unique_tags)))
+    y_true_total = np.zeros((len(val_id_type_list), n_classes))
     y_pred_total = np.zeros_like(y_true_total)
     info_total = np.empty((y_true_total.shape[0], ), dtype=np.object)
     counter = 0
