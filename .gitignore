@@ -16,6 +16,10 @@ labels.txt*
 /tmp/*.npz
 *.pth
 
+*.spyproject
+*.txt
+*.cmd
+*.bat
 
 ## Linux backup files
 *~
