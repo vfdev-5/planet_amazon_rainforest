@@ -1,8 +1,8 @@
 
 import os
 from glob import glob
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 project_common_path = os.path.dirname(__file__)
 
@@ -61,6 +61,7 @@ def get_unique_tags(df):
     return sorted(list(_unique_tags))
 
 unique_tags = get_unique_tags(TRAIN_CSV)
+np_unique_tags = np.array(unique_tags)
 
 tag_to_index = {}
 for i, l in enumerate(unique_tags):
@@ -91,22 +92,22 @@ else:
     TRAIN_ENC_CSV.to_csv(enc_df_path, index=False)
 
 
-equalized_data_classes = {0: ['selective_logging',
+equalized_data_classes = {0: sorted(['selective_logging',
                               'slash_burn',
                               'blow_down',
                               'blooming',
                               'conventional_mine',
-                              'artisinal_mine'],
+                              'artisinal_mine']),
                           1: ['bare_ground'],
-                          2: ['haze',
+                          2: sorted(['haze',
                               'water',
                               'partly_cloudy',
                               'cultivation',
                               'road',
                               'habitation',
-                              'cloudy'],
+                              'cloudy']),
                           3: ['agriculture'],
-                          4: ['primary', 'clear']
+                          4: ['clear', 'primary']
 }
 
 
@@ -153,7 +154,17 @@ def get_filename(image_id, image_type):
     """
 
     check_dir = False
-    if "Train" in image_type:
+    if "Generated_Train" in image_type:
+        ext = 'jpg' if 'jpg' in image_type else 'tif'
+        data_path = os.path.join(GENERATED_DATA, 'train', ext)
+        prefix = 'gen_train_'
+        check_dir = True
+    elif "Generated_Test" in image_type:
+        ext = 'jpg' if 'jpg' in image_type else 'tif'
+        data_path = os.path.join(GENERATED_DATA, 'test', ext)
+        prefix = 'gen_test_'
+        check_dir = True
+    elif "Train" in image_type:
         ext = 'jpg' if 'jpg' in image_type else 'tif'
         data_path = os.path.join(TRAIN_DATA, ext)
         prefix = 'train_'
@@ -182,9 +193,22 @@ def get_caption(image_id, image_type):
 def get_label(image_id, image_type, as_series=False, class_index=None):
     assert "Train" in image_type, "Can get only train labels"
     tags = unique_tags if class_index is None else equalized_data_classes[class_index]
-    if as_series:
-        return TRAIN_ENC_CSV.loc[int(image_id), tags]
-    return TRAIN_ENC_CSV.loc[int(image_id), tags].values.astype(np.uint8)
+
+    if "Generated" in image_type:
+        pass
+        _image_ids = image_id.split('_')
+        _image_type = image_type[len("Generated_"):]
+        _label_1 = get_label(_image_ids[0], _image_type, as_series=as_series)
+        _label_2 = get_label(_image_ids[1], _image_type, as_series=as_series)
+        _label = np.clip(_label_1 + _label_2, 0, 1)
+        if as_series:
+            return _label[tags]
+        else:
+            return _label[np.where(np.isin(np_unique_tags, tags))]
+    else:
+        if as_series:
+            return TRAIN_ENC_CSV.loc[int(image_id), tags]
+        return TRAIN_ENC_CSV.loc[int(image_id), tags].values.astype(np.uint8)
 
 
 def get_class_label_mask(class_index):

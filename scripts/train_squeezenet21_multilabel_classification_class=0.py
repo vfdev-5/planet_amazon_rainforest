@@ -52,6 +52,19 @@ class_index = 0
 
 trainval_id_type_list = get_id_type_list_for_class(class_index)
 
+### ADD GENERATED IMAGES
+from glob import glob
+from data_utils import GENERATED_DATA, to_set, get_label
+
+gen_train_jpg_files = glob(os.path.join(GENERATED_DATA, "train", "jpg", "*.jpg"))
+gen_train_jpg_ids = [s[len(os.path.join(GENERATED_DATA, "train", "jpg"))+1+len('gen_train_'):-4] for s in gen_train_jpg_files]
+gen_id_type_list = [(image_id, "Generated_Train_jpg") for image_id in gen_train_jpg_ids]
+class_index_gen_train_jpg_ids = [id_type for id_type in gen_train_jpg_ids if np.sum(get_label(*gen_id_type_list[0], class_index=class_index)) > 0]
+class_index_gen_id_type_list = [(image_id, "Generated_Train_jpg") for image_id in class_index_gen_train_jpg_ids]
+trainval_id_type_list = trainval_id_type_list + class_index_gen_id_type_list
+### ADD GENERATED IMAGES
+
+
 class_indices = list(equalized_data_classes.keys())
 class_indices.remove(class_index)
 
@@ -135,8 +148,8 @@ for train_index, test_index in kf.split(trainval_id_type_list):
             val_fold_index += 1
             continue
 
-    params['samples_per_epoch'] = 5 * len(train_id_type_list)
-    params['nb_val_samples'] = int(1.5 * len(val_id_type_list))
+    params['samples_per_epoch'] = 1 * len(train_id_type_list)
+    params['nb_val_samples'] = int(1.0 * len(val_id_type_list))
 
     val_fold_index += 1
     print("\n\n ---- Validation fold index: ", val_fold_index, "/", n_folds)

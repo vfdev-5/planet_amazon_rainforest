@@ -30,7 +30,7 @@ def get_image_data(image_id, image_type, return_shape_only=False, cache=None):
 
 def imwrite(img, image_id, image_type):
     output_filename = get_filename(image_id, image_type)
-    if 'label' in image_type and 'gray' not in image_type:
+    if '...' in image_type:
         np.savez_compressed(output_filename, img)
     else:
         pil_image = Image.fromarray(img)
