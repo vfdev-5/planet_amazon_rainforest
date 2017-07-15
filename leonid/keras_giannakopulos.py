@@ -9,6 +9,8 @@ from keras.layers import Conv2D, MaxPooling2D, BatchNormalization
 from keras.optimizers import Adam
 from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard
 
+import time
+
 import cv2
 from tqdm import tqdm
 
@@ -54,7 +56,7 @@ FILE_FOLDER = os.path.abspath(os.path.dirname(__file__))
 input_size = 64
 input_channels = 3
 
-epochs = 1
+epochs = 40
 batch_size = 192
 learning_rate = 0.001
 lr_decay = 1e-4
@@ -100,7 +102,7 @@ df_test_data = pd.read_csv(INPUT_PATH + '/sample_submission_v2.csv')
 
 if os.path.isfile(FILE_FOLDER + '/storage.h5'):
     print("loading data in memory from hdf5 file 'storage.h5'")
-    with h5py.File('storage.h5', 'r') as hf:
+    with h5py.File(FILE_FOLDER + '/storage.h5', 'r') as hf:
         x_train = hf['x_train'][:]
         y_train = hf['y_train'][:]
         x_valid = hf['x_valid'][:]
@@ -179,7 +181,7 @@ callbacks = [EarlyStopping(monitor='val_loss',
                            patience=5,
                            verbose=0),
              TensorBoard(log_dir='logs'),
-             ModelCheckpoint('weights64.h5',
+             ModelCheckpoint(FILE_FOLDER + '/weights64.h5',
                              save_best_only=True)]
 
 opt = Adam(lr=learning_rate, decay=lr_decay)
@@ -197,8 +199,98 @@ model.fit(x_train,
           callbacks=callbacks,
           validation_data=(x_valid, y_valid))
 
+if os.path.isfile(FILE_FOLDER + '/weights64.h5'):
+    model.load_weights(FILE_FOLDER + '/weights64.h5')
+    
 p_valid = model.predict(x_valid, batch_size=batch_size)
-print("Validation f2 score: ", fbeta_score(y_valid, np.array(p_valid) > 0.2, beta=2, average='samples'))
+print("Validation f2 score (threshold 0.2): ", fbeta_score(y_valid, np.array(p_valid) > 0.2, beta=2, average='samples'))
+
+#Epoch 21/40
+#59s - loss: 0.0861 - acc: 0.9662 - val_loss: 0.0939 - val_acc: 0.9642
+#Epoch 22/40
+#60s - loss: 0.0854 - acc: 0.9665 - val_loss: 0.0962 - val_acc: 0.9638
+#Epoch 23/40
+#60s - loss: 0.0844 - acc: 0.9667 - val_loss: 0.0949 - val_acc: 0.9636
+#Validation f2 score:  0.920758834062
+#Validation f2 score (threshold 0.2):  0.91972756761
+
+################################
+
+def fbeta(true_label, prediction):
+   return fbeta_score(true_label, prediction, beta=2, average='samples')
+
+def get_optimal_threshhold(true_label, prediction, iterations = 100):
+    best_threshhold = [0.2]*17    
+    for t in range(17):
+        best_fbeta = 0
+        temp_threshhold = [0.2]*17
+        for i in range(iterations):
+            temp_value = i / float(iterations)
+            temp_threshhold[t] = temp_value
+            temp_fbeta = fbeta(true_label, prediction > temp_threshhold)
+            if  temp_fbeta > best_fbeta:
+                best_fbeta = temp_fbeta
+                best_threshhold[t] = temp_value
+    return best_threshhold
+
+start = time.time()
+thresholds = get_optimal_threshhold(y_valid, p_valid)
+print(time.time() - start)
+
+fbeta(y_valid, np.array(np.array(p_valid) > thresholds, np.uint8))
+
+##############################################
+
+def search_best_threshold(y_true, y_preds):
+    from common.metrics import score
+    _thr = 0.15    
+    _bs = score(y_true, y_preds > _thr)
+    
+    thrs = np.arange(0.0, 1.0, 0.01)
+    for thr in thrs:
+        s = score(y_true, y_preds > thr)
+        if s > _bs:
+            _bs = s
+            _thr = thr      
+    return _thr, _bs
+
+best_thresholds = {}
+
+for tag_index, tag in inv_label_map.items():
+    best_thresholds[tag], best_score = \
+    search_best_threshold(y_valid[:, tag_index],
+                          p_valid[:, tag_index])
+    print("%s | best threshold : %f with score: %f" % (tag, best_thresholds[tag], best_score))
+
+#road | best threshold : 0.070000 with score: 0.822785
+#selective_logging | best threshold : 0.060000 with score: 0.380435
+#agriculture | best threshold : 0.170000 with score: 0.774494
+#haze | best threshold : 0.050000 with score: 0.375000
+#primary | best threshold : 0.430000 with score: 0.609756
+#clear | best threshold : 0.160000 with score: 0.895441
+#blooming | best threshold : 0.100000 with score: 0.940999
+#artisinal_mine | best threshold : 0.060000 with score: 0.313283
+#blow_down | best threshold : 0.200000 with score: 0.839416
+#slash_burn | best threshold : 0.130000 with score: 0.699401
+#partly_cloudy | best threshold : 0.030000 with score: 0.219561
+#bare_ground | best threshold : 0.200000 with score: 0.873328
+#cultivation | best threshold : 0.170000 with score: 0.741815
+#habitation | best threshold : 0.070000 with score: 0.476493
+#cloudy | best threshold : 0.340000 with score: 0.990112
+#water | best threshold : 0.290000 with score: 0.977382
+#conventional_mine | best threshold : 0.150000 with score: 0.791762
+##############################################
+
+print("Validation f2 score (thresholds): ",
+      fbeta_score(y_valid,
+                  np.array(p_valid) > thresholds,
+                  beta=2, average='samples'))
+#Validation f2 score (thresholds):  0.922405779889
+
+
+
+
+
 
 y_test = []
 
@@ -210,11 +302,6 @@ result = pd.DataFrame(result, columns=labels)
 
 result.to_csv(FILE_FOLDER + '/keras_giannakopulos_result_pred.csv',
                         index=False)
-#Epoch 22/30
-#63s - loss: 0.0851 - acc: 0.9663 - val_loss: 0.0965 - val_acc: 0.9639
-#Epoch 23/30
-#63s - loss: 0.0843 - acc: 0.9665 - val_loss: 0.0954 - val_acc: 0.9638
-#0.919060182034
 
 ##################################
 #Model results on full train data
@@ -235,7 +322,12 @@ y_fulltrain = np.array(y_fulltrain, np.uint8)
 x_fulltrain = np.array(x_fulltrain, np.float32)
 
 p_fulltrain = model.predict(x_fulltrain, batch_size=batch_size, verbose=1)
-print("Full train set f2 score: ", fbeta_score(y_fulltrain, np.array(p_fulltrain) > 0.2, beta=2, average='samples'))
+print("Full train set f2 score (threshold 0.2): ",
+      fbeta_score(y_fulltrain, np.array(p_fulltrain) > 0.2,
+                  beta=2, average='samples'))
+print("Full train set f2 score (thresholds): ",
+      fbeta_score(y_fulltrain, np.array(p_fulltrain) > thresholds,
+                  beta=2, average='samples'))
 
 result_fulltrain = pd.DataFrame(np.array(p_fulltrain), columns=labels)
 result_fulltrain.to_csv(FILE_FOLDER + '/keras_giannakopulos_fulltrain_pred.csv',
@@ -244,7 +336,7 @@ result_fulltrain.to_csv(FILE_FOLDER + '/keras_giannakopulos_fulltrain_pred.csv',
 fulltrain_preds = []
 for i in tqdm(range(result_fulltrain.shape[0]), miniters=1000):
     a = result_fulltrain.iloc[[i]]
-    a = a.apply(lambda x: x > 0.2, axis=1)
+    a = a.apply(lambda x: x > thresholds, axis=1)
     a = a.transpose()
     a = a.loc[a[i] == True]
     ' '.join(list(a.index))
@@ -263,7 +355,7 @@ preds = []
 
 for i in tqdm(range(result.shape[0]), miniters=1000):
     a = result.iloc[[i]]
-    a = a.apply(lambda x: x > 0.2, axis=1)
+    a = a.apply(lambda x: x > thresholds, axis=1)
     a = a.transpose()
     a = a.loc[a[i] == True]
     ' '.join(list(a.index))
@@ -275,8 +367,9 @@ df_test_data.to_csv(
              'keras_giannakopulos_submission' \
              + '_{:.5}'.format(
                 fbeta_score(y_valid,
-                        np.array(p_valid) > 0.2, beta=2, average='samples')) \
+                        np.array(p_valid) > thresholds, beta=2, average='samples')) \
              + '.csv')
         , index=False)
 
-# 0.918
+#Validation f2 score (thresholds):  0.922405779889
+
