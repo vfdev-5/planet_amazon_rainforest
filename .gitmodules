@@ -10,3 +10,6 @@
 [submodule "common/models/KerasDenseNet"]
 	path = common/models/KerasDenseNet
 	url = https://github.com/vfdev-5/DenseNet-Keras
+[submodule "common/TinyGeoImageUtils"]
+	path = common/TinyGeoImageUtils
+	url = https://github.com/vfdev-5/TinyGeoImageUtils

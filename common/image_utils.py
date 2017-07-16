@@ -1,7 +1,22 @@
 import os
+import sys
+
 import cv2
 from PIL import Image
 import numpy as np
+
+# Local repos:
+local_repos_path = os.path.abspath(os.path.dirname(__file__))
+
+gimg_path = os.path.join(local_repos_path, "TinyGeoImageUtils")
+if gimg_path not in sys.path:
+    sys.path.append(gimg_path)
+
+# TinyGeoImageUtils
+from gimg_utils.GeoImage import GeoImage, logger
+
+import logging
+logger.setLevel(logging.CRITICAL)
 
 # Project
 from data_utils import get_filename
@@ -18,6 +33,8 @@ def get_image_data(image_id, image_type, return_shape_only=False, cache=None):
 
     if 'label' in image_type and 'gray' not in image_type:
         img = np.load(get_filename(image_id, image_type))['arr_0']
+    elif 'tif' in image_type:
+        img = _get_image_data_gdal(image_id, image_type)
     else:
         # img = _get_image_data_pil(image_id, image_type, return_shape_only=return_shape_only)
         img = _get_image_data_opencv(image_id, image_type, return_shape_only=return_shape_only)
@@ -67,6 +84,12 @@ def _get_image_data_pil(image_id, image_type, return_exif_md=False, return_shape
         return img
     else:
         return img, img_pil._getexif()
+
+
+def _get_image_data_gdal(image_id, image_type, **kwargs):
+    fname = get_filename(image_id, image_type)
+    gimg = GeoImage(fname)
+    return gimg.get_data()
 
 
 def median_blur(img, ksize):

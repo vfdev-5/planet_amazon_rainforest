@@ -59,6 +59,24 @@ def get_train_imgaug_seq(seed):
     return train_seq
 
 
+def get_basic_imgaug_seq(seed):
+    determinist = {
+        "deterministic": True,
+        "random_state": seed
+    }
+    train_seq = iaa.Sequential([
+        iaa.Affine(translate_px=(-25, 25),
+                   scale=(0.85, 1.15),
+                   rotate=(-65, 65),
+                   mode='reflect',
+                   **determinist),
+    ],
+        random_order=True,
+        **determinist
+    )
+    return train_seq
+
+
 def get_id_imgaug_seq():
     return iaa.Sequential()
 
@@ -201,9 +219,13 @@ class EpochValidationCallback(Callback):
         self.val_id_type_list = val_id_type_list
         self.ev_params = dict(params)
         self.ev_params['verbose'] = 0
+        if 'EpochValidationCallback_rate' not in self.ev_params:
+            self.ev_params['EpochValidationCallback_rate'] = 3
         assert 'seed' in self.ev_params, "Need seed, params: {}".format(self.ev_params)
 
     def on_epoch_end(self, epoch, logs=None):
+        if epoch % self.ev_params['EpochValidationCallback_rate'] > 0:
+            return
         f2, mae = classification_validate(self.model, self.val_id_type_list, **self.ev_params)
         print("\nEpoch validation: f2 = %f, mae=%f \n" % (f2, mae))
 
@@ -286,9 +308,15 @@ def classification_train(model,
     class_weight = params.get('class_weight')
     verbose = 1 if 'verbose' not in params else params['verbose']
 
-    try:
+    if 'train_seq' in params:
+        assert callable(params['train_seq']), "params['train_seq'] should be callable"
+    train_seq = get_train_imgaug_seq(seed) if 'train_seq' not in params else params['train_seq'](seed)
 
-        train_seq = get_train_imgaug_seq(seed)
+    if 'val_seq' in params:
+        assert callable(params['val_seq']), "params['val_seq'] should be callable"
+    val_seq = get_val_imgaug_seq(seed) if 'val_seq' not in params else params['val_seq'](seed)
+
+    try:
         train_gen, train_flow = get_gen_flow(id_type_list=train_id_type_list,
                                              imgaug_seq=train_seq,
                                              **params)
@@ -296,8 +324,6 @@ def classification_train(model,
         if normalize_data and normalization == '':
             params['normalization'] = 'from_save_prefix'
 
-        # val_seq = get_val_imgaug_seq(seed)
-        val_seq = None
         val_gen, val_flow = get_gen_flow(id_type_list=val_id_type_list,
                                          imgaug_seq=val_seq,
                                          **params)

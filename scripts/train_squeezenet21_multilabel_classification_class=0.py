@@ -22,7 +22,7 @@ import numpy as np
 
 from data_utils import get_id_type_list_for_class, OUTPUT_PATH, GENERATED_DATA, to_set, RESOURCES_PATH
 from training_utils import classification_train as train, classification_validate as validate
-from training_utils import exp_decay, step_decay
+from training_utils import exp_decay, step_decay, get_basic_imgaug_seq
 
 from models.squeezenet_multiclassification import get_squeezenet21_rare_tags
 
@@ -46,7 +46,7 @@ cnn.summary()
 seed = 2017
 np.random.seed(seed)
 
-cache = DataCache(0)  # !!! CHECK BEFORE LOAD TO FLOYD
+cache = DataCache(10000)  # !!! CHECK BEFORE LOAD TO FLOYD
 
 class_index = 0
 
@@ -65,16 +65,16 @@ trainval_id_type_list = trainval_id_type_list + class_index_gen_id_type_list
 ### ADD GENERATED IMAGES
 
 
-class_indices = list(equalized_data_classes.keys())
-class_indices.remove(class_index)
-
-n_other_samples = int(len(trainval_id_type_list) * 1.0 / len(class_indices))
-
-for index in class_indices:
-    id_type_list = np.array(get_id_type_list_for_class(index))
-    id_type_list = list(to_set(id_type_list) - to_set(trainval_id_type_list))
-    np.random.shuffle(id_type_list)
-    trainval_id_type_list.extend(id_type_list[:n_other_samples])
+# class_indices = list(equalized_data_classes.keys())
+# class_indices.remove(class_index)
+#
+# n_other_samples = int(len(trainval_id_type_list) * 1.0 / len(class_indices))
+#
+# for index in class_indices:
+#     id_type_list = np.array(get_id_type_list_for_class(index))
+#     id_type_list = list(to_set(id_type_list) - to_set(trainval_id_type_list))
+#     np.random.shuffle(id_type_list)
+#     trainval_id_type_list.extend(id_type_list[:n_other_samples])
 
 print(len(trainval_id_type_list), len(to_set(trainval_id_type_list)))
 
@@ -92,14 +92,16 @@ params = {
     'n_classes': len(equalized_data_classes[class_index]),
     'image_size': (256, 256),
 
-    'optimizer': 'adadelta',
-    'loss': lambda Y_true, Y_pred: binary_crossentropy_with_false_negatives(Y_true, Y_pred, a=10.0),
+    'loss': lambda Y_true, Y_pred: binary_crossentropy_with_false_negatives(Y_true, Y_pred, a=1.0),
     'nb_epochs': 50,    # !!! CHECK BEFORE LOAD TO FLOYD
     'batch_size': 32,  # !!! CHECK BEFORE LOAD TO FLOYD
 
     'normalize_data': True,
     'normalization': 'vgg',
 
+    'train_seq': get_basic_imgaug_seq,
+
+    'optimizer': 'adam',
 
     # Learning rate scheduler
     'lr_kwargs': {

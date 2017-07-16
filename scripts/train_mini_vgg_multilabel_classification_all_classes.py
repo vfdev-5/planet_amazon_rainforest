@@ -68,8 +68,8 @@ params = {
     # Learning rate scheduler
     'lr_kwargs': {
         'lr': 0.001,
-        'a': 0.98,
-        'init_epoch': 0
+        'a': 0.95,
+        'init_epoch': 18
     },
     'lr_decay_f': exp_decay,
 
@@ -85,7 +85,7 @@ params = {
     'cache': cache,
 
     # 'class_index': 0,
-    # 'pretrained_model': 'load_best',
+    'pretrained_model': 'load_best',
     # 'pretrained_model': os.path.join(GENERATED_DATA, "weights", ""),
 
     'output_path': OUTPUT_PATH,

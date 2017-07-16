@@ -32,3 +32,12 @@ tar -xf /output/test/test-jpg.tar -C /output/test
 mv /output/test/test-jpg /output/test/jpg
 rm /output/test/test-jpg.tar
 rm /output/test-jpg.tar.7z
+
+
+mkdir -p /output/test
+
+7z x /output/test-jpg-additional.tar.7z -o/output/test
+tar -xf /output/test/test-jpg-additional.tar -C /output/test
+mv /output/test/test-jpg-additional /output/test/jpg-additional
+rm /output/test/test-jpg-additional.tar
+rm /output/test-jpg-additional.tar.7z

@@ -135,13 +135,13 @@ else:
     TRAIN_ENC_CL_CSV.to_csv(enc_cl_df_path, index=False)
 
 
-def get_id_type_list_for_class(class_index):
+def get_id_type_list_for_class(class_index, image_type='Train_jpg'):
     df = TRAIN_ENC_CL_CSV[TRAIN_ENC_CL_CSV['class_%i' % class_index] == 1]
-    return get_id_type_list_from_df(df)
+    return get_id_type_list_from_df(df, image_type)
 
 
-def get_id_type_list_from_df(df):
-    return [(str(image_id), "Train_jpg") for image_id in df['image_id'].values]
+def get_id_type_list_from_df(df, image_type='Train_jpg'):
+    return [(str(image_id), image_type) for image_id in df['image_id'].values]
 
 
 def to_set(id_type_list):
