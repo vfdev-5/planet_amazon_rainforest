@@ -20,7 +20,7 @@ from data_utils import get_id_type_list_for_class, OUTPUT_PATH, GENERATED_DATA, 
 from training_utils import classification_train as train, classification_validate as validate
 from training_utils import exp_decay, step_decay
 
-from models.resnet50_multiclassification import get_resnet
+from models.mini_vgg_multiclassification import get_mini_vgg_bn, get_mini_vgg
 
 from sklearn.model_selection import KFold
 from data_utils import to_set, equalized_data_classes, unique_tags, train_jpg_ids, TRAIN_ENC_CL_CSV
@@ -31,7 +31,7 @@ from xy_providers import image_label_provider
 from models.keras_metrics import binary_crossentropy_with_false_negatives
 
 
-cnn = get_resnet(input_shape=(224, 224, 3), n_classes=17)
+cnn = get_mini_vgg_bn(input_shape=(64, 64, 3), n_classes=17)
 cnn.summary()
 
 # Setup configuration
@@ -43,29 +43,29 @@ trainval_id_type_list = [(image_id, "Train_jpg") for image_id in train_jpg_ids]
 np.random.shuffle(trainval_id_type_list)
 print(len(trainval_id_type_list))
 
-cache = DataCache(10000)  # !!! CHECK BEFORE LOAD TO FLOYD
+cache = DataCache(41000)  # !!! CHECK BEFORE LOAD TO FLOYD
 
 params = {
     'seed': seed,
 
     'xy_provider': image_label_provider,
 
-    'network': get_resnet,
-    'optimizer': 'adadelta',
-    'loss': binary_crossentropy_with_false_negatives, # 'binary_crossentropy', # mae_with_false_negatives,
+    'network': get_mini_vgg,
+    'optimizer': 'adam',
+    'loss': 'binary_crossentropy', # mae_with_false_negatives,
     'nb_epochs': 30,    # !!! CHECK BEFORE LOAD TO FLOYD
-    'batch_size': 16,  # !!! CHECK BEFORE LOAD TO FLOYD
+    'batch_size': 24,  # !!! CHECK BEFORE LOAD TO FLOYD
 
-    'normalize_data': True,
+    'normalize_data': False,
     'normalization': 'vgg',
 
-    'image_size': (224, 224),
+    'image_size': (64, 64),
 
     # Learning rate scheduler
     'lr_kwargs': {
-        'lr': 0.01,
-        'a': 0.95,
-        'init_epoch': 4
+        'lr': 0.001,
+        'a': 0.98,
+        'init_epoch': 0
     },
     'lr_decay_f': exp_decay,
 
@@ -81,7 +81,7 @@ params = {
     'cache': cache,
 
     # 'class_index': 0,
-    'pretrained_model': 'load_best',
+    # 'pretrained_model': 'load_best',
     # 'pretrained_model': os.path.join(GENERATED_DATA, "weights", ""),
 
     'output_path': OUTPUT_PATH,

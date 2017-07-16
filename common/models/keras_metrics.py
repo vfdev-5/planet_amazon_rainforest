@@ -67,3 +67,33 @@ def recall(y_true, y_pred):
     possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
     recall = true_positives / (possible_positives + K.epsilon())
     return recall
+
+
+# def f2(y_true, y_pred):
+#     # from https://www.kaggle.com/teasherm/keras-metric-for-f-score-tf-only
+#     y_pred = K.round(K.clip(y_pred, 0, 1))
+#     y_correct = K.round(K.clip(y_true * y_pred, 0, 1))
+#     sum_true = K.sum(y_true, axis=1)
+#     sum_pred = K.sum(y_pred, axis=1)
+#     sum_correct = K.sum(y_correct, axis=1)
+#     precision = sum_correct / sum_pred
+#     recall = sum_correct / sum_true
+#     f_score = (5 * precision * recall + K.epsilon()) / (4 * precision + recall + K.epsilon() * K.epsilon())
+#     return K.mean(f_score)
+
+import tensorflow as tf
+
+
+def f2(y_true, y_pred):
+    # from https://www.kaggle.com/teasherm/keras-metric-for-f-score-tf-only
+    y_true = tf.cast(y_true, "int32")
+    y_pred = tf.cast(tf.round(y_pred), "int32") # implicit 0.5 threshold via tf.round
+    y_correct = y_true * y_pred
+    sum_true = tf.reduce_sum(y_true, axis=1)
+    sum_pred = tf.reduce_sum(y_pred, axis=1)
+    sum_correct = tf.reduce_sum(y_correct, axis=1)
+    precision = sum_correct / sum_pred
+    recall = sum_correct / sum_true
+    f_score = 5 * precision * recall / (4 * precision + recall)
+    f_score = tf.where(tf.is_nan(f_score), tf.zeros_like(f_score), f_score)
+    return tf.reduce_mean(f_score)

@@ -31,7 +31,7 @@ def classification_predict(model,
     ll = len(test_id_type_list)
 
     for x, _, info in val_flow:
-        y_pred = model.predict(x)
+        y_pred = model.predict_on_batch(x)
         s = y_pred.shape[0]
         if verbose > 0:
             print("--", total_counter, '/', ll)

@@ -93,9 +93,9 @@ params = {
     'image_size': (256, 256),
 
     'optimizer': 'adadelta',
-    'loss': lambda Y_true, Y_pred: binary_crossentropy_with_false_negatives(Y_true, Y_pred, a=100.0),
+    'loss': lambda Y_true, Y_pred: binary_crossentropy_with_false_negatives(Y_true, Y_pred, a=10.0),
     'nb_epochs': 50,    # !!! CHECK BEFORE LOAD TO FLOYD
-    'batch_size': 16,  # !!! CHECK BEFORE LOAD TO FLOYD
+    'batch_size': 32,  # !!! CHECK BEFORE LOAD TO FLOYD
 
     'normalize_data': True,
     'normalization': 'vgg',
