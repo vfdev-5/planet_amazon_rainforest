@@ -53,9 +53,9 @@ def get_resnet(input_shape, n_classes, **params):
         # 'bn4f_branch2b', 'res4f_branch2c', 'bn4f_branch2c',
     ]
 
-    for layer in resnet.layers:
-        if layer.name in not_trained_layer_names:
-            layer.trainable = False
+    #for layer in resnet.layers:
+    #    if layer.name in not_trained_layer_names:
+    #        layer.trainable = False
 
     x = resnet.outputs[0]
     x = Flatten()(x)
