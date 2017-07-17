@@ -275,7 +275,9 @@ def classification_train(model,
     weights_filename += ".h5"
 
     model_checkpoint = ModelCheckpoint(weights_filename, monitor='val_loss',
-                                       save_best_only=False, save_weights_only=True)
+                                       save_best_only=False,
+                                       save_weights_only=True)#,
+                                       #period = 3)
     now = datetime.now()
     info_filename = os.path.join(weights_path,
                                  'training_%s_%s.info' % (save_prefix, str(now.strftime("%Y-%m-%d-%H-%M"))))
@@ -287,7 +289,7 @@ def classification_train(model,
 
     epoch_validation = EpochValidationCallback(val_id_type_list, **params)
 
-    callbacks = [model_checkpoint, csv_logger, epoch_validation]
+    callbacks = [model_checkpoint, csv_logger]#, epoch_validation
     if lr_decay_f is not None:
         assert 'lr_kwargs' in params and \
                isinstance(params['lr_kwargs'], dict), "Need lr_kwargs"
