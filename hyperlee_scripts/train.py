@@ -14,5 +14,5 @@ if __name__ == "__main__":
     log_filename='$OUTPUT_PATH/%s_%s.log' % (script_name, now.strftime("%Y%m%d_%H%M"))
 
     print("\n - 1 - Start training")
-    os.system("cd $ROOT && python3 scripts/%s 2>&1 > %s" % (script_name, log_filename))
+    os.system("cd $ROOT && python3 scripts/%s > %s 2>&1" % (script_name, log_filename))
     print("\n Finished training")

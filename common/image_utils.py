@@ -12,11 +12,15 @@ gimg_path = os.path.join(local_repos_path, "TinyGeoImageUtils")
 if gimg_path not in sys.path:
     sys.path.append(gimg_path)
 
-# TinyGeoImageUtils
-from gimg_utils.GeoImage import GeoImage, logger
+try:
+    # TinyGeoImageUtils
+    from gimg_utils.GeoImage import GeoImage, logger
 
-import logging
-logger.setLevel(logging.CRITICAL)
+    import logging
+    logger.setLevel(logging.CRITICAL)
+except Exception:
+    pass
+
 
 # Project
 from data_utils import get_filename
