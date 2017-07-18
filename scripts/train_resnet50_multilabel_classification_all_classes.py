@@ -139,7 +139,8 @@ cv_mean_scores = np.zeros((n_runs, n_folds))
 val_fold_indices = []  # !!! CHECK BEFORE LOAD TO FLOYD
 
 params['pretrained_model'] = 'load_best'
-
+params['save_predictions'] = True
+now = datetime.now()
 _trainval_id_type_list = np.array(trainval_id_type_list)
 
 while run_counter < n_runs:
@@ -168,6 +169,9 @@ while run_counter < n_runs:
         load_pretrained_model(cnn, **params)
 
         params['seed'] += run_counter - 1
+        params['save_predictions_id'] = params['save_prefix'] + \
+                                        '_run=%i' % run_counter + \
+                                        '_' + str(now.strftime("%Y-%m-%d-%H-%M"))
 
         f2, mae = validate(cnn, val_id_type_list, verbose=0, **params)
         cv_mean_scores[run_counter-1, val_fold_index-1] = f2

@@ -59,6 +59,29 @@ def get_train_imgaug_seq(seed):
     return train_seq
 
 
+def get_high_zoom_imgaug_seq(seed):
+    determinist = {
+        "deterministic": True,
+        "random_state": seed
+    }
+    train_seq = iaa.Sequential([
+        # iaa.Sometimes(0.45, iaa.Sharpen(alpha=0.9, lightness=(0.5, 1.15), **determinist), **determinist),
+        iaa.Sometimes(0.45, iaa.ContrastNormalization(alpha=(0.75, 1.15), **determinist), **determinist),
+        # iaa.Sometimes(0.5, iaa.AdditiveGaussianNoise(scale=(0, 0.01 * 255),
+        #                                              per_channel=True, **determinist), **determinist),
+        iaa.Affine(translate_px=(-5, 5),
+                   scale=(1.0, 1.75),
+                   rotate=(-65, 65),
+                   mode='reflect',
+                   **determinist),
+        # iaa.Add(value=(-35, 35), per_channel=True),  # Probably, can change nature of label
+    ],
+        random_order=True,
+        **determinist
+    )
+    return train_seq
+
+
 def get_basic_imgaug_seq(seed):
     determinist = {
         "deterministic": True,
@@ -275,9 +298,7 @@ def classification_train(model,
     weights_filename += ".h5"
 
     model_checkpoint = ModelCheckpoint(weights_filename, monitor='val_loss',
-                                       save_best_only=False,
-                                       save_weights_only=True)#,
-                                       #period = 3)
+                                       save_best_only=False, save_weights_only=False)
     now = datetime.now()
     info_filename = os.path.join(weights_path,
                                  'training_%s_%s.info' % (save_prefix, str(now.strftime("%Y-%m-%d-%H-%M"))))

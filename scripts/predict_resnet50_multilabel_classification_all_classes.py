@@ -102,7 +102,7 @@ test_id_type_list.extend(test_id_type_list2)
 print(len(test_id_type_list))
 
 n_folds = 5  ## !!! CHECK THIS
-run_counter = 0
+run_counter = 1
 n_runs = 2
 params['pretrained_model'] = 'load_best'
 now = datetime.now()
@@ -111,7 +111,7 @@ while run_counter < n_runs:
     run_counter += 1
     print("\n\n ---- New run : ", run_counter, "/", n_runs)
 
-    # SqueezeNet on 5 folds
+    # Resnet on 5 folds
     for val_fold_index in range(n_folds):
         val_fold_index += 1
         print("\n\n ---- Validation fold index: ", val_fold_index, "/", n_folds)

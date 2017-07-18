@@ -43,10 +43,6 @@ from test_utils import classification_predict as predict
 seed = 2017
 np.random.seed(seed)
 
-trainval_id_type_list = [(image_id, "Train_jpg") for image_id in train_jpg_ids]
-np.random.shuffle(trainval_id_type_list)
-print(len(trainval_id_type_list))
-
 cache = DataCache(10000)  # !!! CHECK BEFORE LOAD TO FLOYD
 
 params = {

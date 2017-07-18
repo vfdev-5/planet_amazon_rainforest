@@ -105,7 +105,10 @@ def tif_image_label_provider(image_id_type_list,
                              cache=None,
                              with_label=True,
                              class_index=None,
+                             tag=None,
                              verbose=0, **kwargs):
+
+    assert not (class_index is not None and tag is not None), "Either class_index or either tag, not both"
 
     if seed is not None:
         np.random.seed(seed)
@@ -154,7 +157,16 @@ def tif_image_label_provider(image_id_type_list,
                 img[:, :, 6] = to_lightness(tif_img)
 
                 if with_label:
-                    label = get_label(image_id, image_type, class_index=class_index)
+                    if class_index is not None:
+                        label = get_label(image_id, image_type, class_index=class_index)
+                        label = np.concatenate((label, [0, ]))
+                        if np.sum(label) < 1:
+                            label[-1] = 1
+                    elif tag is not None:
+                        label = get_label(image_id, image_type, tag=tag)
+                    else:
+                        label = get_label(image_id, image_type)
+
                 else:
                     label = None
                 # fill the cache only at first time:

@@ -9,7 +9,7 @@ if squeezenet_path not in sys.path:
 
 from squeezenet import SqueezeNet
 from keras.optimizers import Adadelta, Adam, SGD
-from keras.layers import GlobalAveragePooling2D, Activation, Flatten, Dense, Dropout
+from keras.layers import Input, GlobalAveragePooling2D, Activation, Flatten, Dense, Dropout
 from keras.models import Model
 from .keras_metrics import precision, recall
 
@@ -123,9 +123,10 @@ def get_squeezenet21_rare_tags(input_shape, n_classes, **params):
     lr = 0.01 if 'lr' not in params else params['lr']
     loss = '' if 'loss' not in params else params['loss']
     weights = 'imagenet' if 'weights' not in params else params['weights']
-    class_index = params['class_index']
 
-    snet = SqueezeNet(input_shape=input_shape, classes=n_classes, include_top=False, weights=weights)
+    inputs = Input(input_shape)
+
+    snet = SqueezeNet(input_tensor=inputs, classes=n_classes, include_top=False, weights=weights)
 
     x = snet.outputs[0]
     x = Flatten()(x)

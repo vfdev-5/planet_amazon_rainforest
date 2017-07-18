@@ -24,7 +24,7 @@ from data_utils import get_id_type_list_for_class, OUTPUT_PATH, GENERATED_DATA, 
 from training_utils import classification_train as train, classification_validate as validate
 from training_utils import exp_decay, step_decay
 
-from models.mini_vgg_multiclassification import get_mini_vgg
+from models.squeezenet_tif_classification import get_squeezenet_on_tif
 
 from sklearn.model_selection import KFold
 from data_utils import to_set, equalized_data_classes, unique_tags, train_jpg_ids, TRAIN_ENC_CL_CSV
@@ -35,7 +35,7 @@ from xy_providers import tif_image_label_provider
 from models.keras_metrics import binary_crossentropy_with_false_negatives
 
 
-cnn = get_mini_vgg((224, 224, 7), len(equalized_data_classes[0]) + 1)
+cnn = get_squeezenet_on_tif((224, 224, 7), len(equalized_data_classes[0]) + 1)
 cnn.summary()
 
 # Setup configuration
@@ -47,8 +47,6 @@ cache = DataCache(10000)  # !!! CHECK BEFORE LOAD TO FLOYD
 
 class_index = 0
 trainval_id_type_list = get_id_type_list_for_class(class_index, 'Train_tif')
-
-trainval_id_type_list = trainval_id_type_list
 
 ### ADD GENERATED IMAGES
 from glob import glob
@@ -80,24 +78,24 @@ params = {
 
     'xy_provider': tif_image_label_provider,
 
-    'network': get_mini_vgg,
+    'network': get_squeezenet_on_tif,
     'optimizer': 'adadelta',
     'loss': 'binary_crossentropy', # binary_crossentropy_with_false_negatives,
     'nb_epochs': 25,    # !!! CHECK BEFORE LOAD TO FLOYD
-    'batch_size': 16,  # !!! CHECK BEFORE LOAD TO FLOYD
+    'batch_size': 24,  # !!! CHECK BEFORE LOAD TO FLOYD
 
-    'normalize_data': False,
+    'normalize_data': True,
     'normalization': '',
 
-    'image_size': (224, 224),
+    'image_size': (256, 256),
 
     'class_index': class_index,
 
     # Learning rate scheduler
     'lr_kwargs': {
-        'lr': 0.1,
+        'lr': 1.0,
         'a': 0.95,
-        'init_epoch': 10
+        'init_epoch': 0
     },
     'lr_decay_f': exp_decay,
 
@@ -112,8 +110,7 @@ params = {
 
     'cache': cache,
 
-#     'class_index': 0,
-     'pretrained_model': 'load_best',
+#      'pretrained_model': 'load_best',
 #     'pretrained_model': os.path.join(GENERATED_DATA, "weights", ""),
 
     'output_path': OUTPUT_PATH,

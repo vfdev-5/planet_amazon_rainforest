@@ -13,13 +13,11 @@ if gimg_path not in sys.path:
     sys.path.append(gimg_path)
 
 try:
+    import gdal
     # TinyGeoImageUtils
     from gimg_utils.GeoImage import GeoImage, logger
-
-    import logging
-    logger.setLevel(logging.CRITICAL)
-except Exception:
-    pass
+except ImportError:
+    print("GDAL is not installed")
 
 
 # Project
@@ -53,9 +51,52 @@ def imwrite(img, image_id, image_type):
     output_filename = get_filename(image_id, image_type)
     if '...' in image_type:
         np.savez_compressed(output_filename, img)
+    elif 'tif' in image_type:
+        _imwrite_tif(output_filename, img)
     else:
         pil_image = Image.fromarray(img)
         pil_image.save(output_filename)
+
+
+def _imwrite_tif(filename, data, compress=True):
+    driver = gdal.GetDriverByName("GTiff")
+    data_type = to_gdal(data.dtype)
+    nb_bands = data.shape[2]
+    width = data.shape[1]
+    height = data.shape[0]
+
+    kwargs = {}
+    if compress:
+        kwargs['options'] = ['COMPRESS=LZW']
+    dst_dataset = driver.Create(filename, width, height, nb_bands, data_type, **kwargs)
+    assert dst_dataset is not None, "File '%s' is not created" % filename
+    for band_index in range(1,nb_bands+1):
+        dst_band = dst_dataset.GetRasterBand(band_index)
+        dst_band.WriteArray(data[:, :, band_index-1], 0, 0)
+
+
+def to_gdal(dtype):
+    """ Method to convert numpy data type to Gdal data type """
+    if dtype == np.uint8:
+        return gdal.GDT_Byte
+    elif dtype == np.int16:
+        return gdal.GDT_Int16
+    elif dtype == np.int32:
+        return gdal.GDT_Int32
+    elif dtype == np.uint16:
+        return gdal.GDT_UInt16
+    elif dtype == np.uint32:
+        return gdal.GDT_UInt32
+    elif dtype == np.float32:
+        return gdal.GDT_Float32
+    elif dtype == np.float64:
+        return gdal.GDT_Float64
+    elif dtype == np.complex64:
+        return gdal.GDT_CFloat32
+    elif dtype == np.complex128:
+        return gdal.GDT_CFloat64
+    else:
+        return gdal.GDT_Unknown
 
 
 def _get_image_data_opencv(image_id, image_type, **kwargs):

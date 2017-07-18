@@ -80,7 +80,7 @@ params = {
 
     'network': get_squeezenet_on_tif,
     'optimizer': 'adadelta',
-    'loss': 'binary_crossentropy', # binary_crossentropy_with_false_negatives,
+    'loss': binary_crossentropy_with_false_negatives,
     'nb_epochs': 25,    # !!! CHECK BEFORE LOAD TO FLOYD
     'batch_size': 24,  # !!! CHECK BEFORE LOAD TO FLOYD
 

@@ -187,12 +187,26 @@ def get_filename(image_id, image_type):
 
 def get_caption(image_id, image_type):
     assert "Train" in image_type, "Can get only train caption"
-    return TRAIN_CSV.loc[int(image_id), 'tags']
+
+    if "Generated" in image_type:
+        _image_ids = image_id.split('_')
+        _image_type = image_type[len("Generated_"):]
+        _caption_1 = get_caption(_image_ids[0], _image_type)
+        _caption_2 = get_caption(_image_ids[1], _image_type)
+        return _caption_1 + " " + _caption_2
+    else:
+        return TRAIN_CSV.loc[int(image_id), 'tags']
 
 
-def get_label(image_id, image_type, as_series=False, class_index=None):
+def get_label(image_id, image_type, as_series=False, class_index=None, tag=None):
     assert "Train" in image_type, "Can get only train labels"
-    tags = unique_tags if class_index is None else equalized_data_classes[class_index]
+    assert not (class_index is not None and tag is not None), "Either class_index or either tag, not both"
+    if class_index is not None:
+        tags = equalized_data_classes[class_index]
+    elif tag is not None:
+        tags = [tag, ]
+    else:
+        tags = unique_tags
 
     if "Generated" in image_type:
         pass
