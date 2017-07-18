@@ -43,7 +43,7 @@ trainval_id_type_list = [(image_id, "Train_jpg") for image_id in train_jpg_ids]
 np.random.shuffle(trainval_id_type_list)
 print(len(trainval_id_type_list))
 
-cache = DataCache(10000)  # !!! CHECK BEFORE LOAD TO FLOYD
+cache = DataCache(11000)  # !!! CHECK BEFORE LOAD TO FLOYD
 
 params = {
     'seed': seed,
@@ -51,10 +51,10 @@ params = {
     'xy_provider': image_label_provider,
 
     'network': get_resnet,
-    'optimizer': 'adadelta',
+    'optimizer': 'adam',
     'loss': binary_crossentropy_with_false_negatives, # 'binary_crossentropy', # mae_with_false_negatives,
     'nb_epochs': 11,    # !!! CHECK BEFORE LOAD TO FLOYD
-    'batch_size': 32,  # !!! CHECK BEFORE LOAD TO FLOYD
+    'batch_size': 96,  # !!! CHECK BEFORE LOAD TO FLOYD
 
     'normalize_data': True,
     'normalization': 'vgg',
@@ -63,9 +63,9 @@ params = {
 
     # Learning rate scheduler
     'lr_kwargs': {
-        'lr': 0.0077,
-        'a': 0.975,
-        'init_epoch': 15
+        'lr': 0.0000051,
+        'a': 0.95,
+        'init_epoch': 0
     },
     'lr_decay_f': exp_decay,
 
@@ -96,7 +96,7 @@ params['n_classes'] = len(unique_tags)
 
 n_folds = 5
 val_fold_index = 0
-val_fold_indices = [0,3,4]  # !!! CHECK BEFORE LOAD TO FLOYD
+val_fold_indices = []  # !!! CHECK BEFORE LOAD TO FLOYD
 hists = []
 
 kf = KFold(n_splits=n_folds)

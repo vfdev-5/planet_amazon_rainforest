@@ -7,18 +7,6 @@ from datetime import datetime
 import warnings
 warnings.filterwarnings("ignore")
 
-
-## Use tensorflow with CPU
-import tensorflow as tf
-config = tf.ConfigProto(
-        device_count = {'GPU': 0}
-    )
-sess = tf.Session(config=config)
-from keras import backend as K
-K.tensorflow_backend.set_session(session=sess)
-##
-
-
 # Project
 project_common_path = os.path.dirname(__file__)
 project_common_path = os.path.abspath(os.path.join(project_common_path, '..', 'common'))
@@ -62,7 +50,7 @@ params = {
     'xy_provider': image_label_provider,
 
     'network': get_resnet,
-    'optimizer': 'adadelta',
+    'optimizer': '',
     'loss': binary_crossentropy_with_false_negatives, # 'binary_crossentropy', # mae_with_false_negatives,
     'nb_epochs': 11,    # !!! CHECK BEFORE LOAD TO FLOYD
     'batch_size': 32,  # !!! CHECK BEFORE LOAD TO FLOYD
@@ -105,11 +93,11 @@ params['n_classes'] = len(unique_tags)
 
 # ### Validation all classes
 
-n_runs = 2
+n_runs = 1
 n_folds = 5
 run_counter = 0
 cv_mean_scores = np.zeros((n_runs, n_folds))
-val_fold_indices = []  # !!! CHECK BEFORE LOAD TO FLOYD
+val_fold_indices = [3, 4]  # !!! CHECK BEFORE LOAD TO FLOYD
 
 params['pretrained_model'] = 'load_best'
 params['save_predictions'] = True
