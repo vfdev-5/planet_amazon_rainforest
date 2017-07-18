@@ -82,7 +82,7 @@ params = {
 
     'network': get_mini_vgg,
     'optimizer': 'adadelta',
-    'loss': binary_crossentropy_with_false_negatives, # 'binary_crossentropy', # mae_with_false_negatives,
+    'loss': 'binary_crossentropy', # binary_crossentropy_with_false_negatives,
     'nb_epochs': 25,    # !!! CHECK BEFORE LOAD TO FLOYD
     'batch_size': 16,  # !!! CHECK BEFORE LOAD TO FLOYD
 

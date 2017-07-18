@@ -174,7 +174,6 @@ while run_counter < n_runs:
 
         params['seed'] += run_counter - 1
 
-
         params['save_predictions_id'] = params['save_prefix'] + \
                                         '_run=%i' % run_counter + \
                                         '_' + str(now.strftime("%Y-%m-%d-%H-%M"))

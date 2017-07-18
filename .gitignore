@@ -15,6 +15,7 @@ labels.txt*
 *.gz
 /tmp/*.npz
 *.pth
+resources/*.h5
 
 *.spyproject
 *.txt
