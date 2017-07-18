@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore")
 try:
     if __file__: exit
 except NameError:
-    __file__ = 'scripts/train_squeezenet21_multilabel_classification_class=0.py'
+    __file__ = 'scripts/train_squeezenet21_multilabel_classification_all_classes.py'
 
 # Project
 project_common_path = os.path.dirname(__file__)
@@ -20,25 +20,22 @@ if not project_common_path in sys.path:
 
 import numpy as np
 
-from data_utils import get_id_type_list_for_class, OUTPUT_PATH, GENERATED_DATA, to_set, RESOURCES_PATH
+from data_utils import get_id_type_list_for_class, OUTPUT_PATH, GENERATED_DATA, to_set
 from training_utils import classification_train as train, classification_validate as validate
-from training_utils import exp_decay, step_decay, get_basic_imgaug_seq
+from training_utils import exp_decay, step_decay
 
-from models.squeezenet_multiclassification import get_squeezenet21_rare_tags
+from models.squeezenet_tif_classification import get_squeezenet_on_tif
 
 from sklearn.model_selection import KFold
 from data_utils import to_set, equalized_data_classes, unique_tags, train_jpg_ids, TRAIN_ENC_CL_CSV
 from data_utils import load_pretrained_model, get_label
 from data_utils import DataCache
 
-from xy_providers import image_class_labels_provider
+from xy_providers import tif_image_label_provider
 from models.keras_metrics import binary_crossentropy_with_false_negatives
 
 
-cnn = get_squeezenet21_rare_tags((256, 256, 3),
-                                 len(equalized_data_classes[0]),
-                                 class_index=0,
-                                 last_dense_name='d2_class_0')
+cnn = get_squeezenet_on_tif((224, 224, 7), len(equalized_data_classes[0]) + 1)
 cnn.summary()
 
 # Setup configuration
@@ -49,63 +46,54 @@ np.random.seed(seed)
 cache = DataCache(10000)  # !!! CHECK BEFORE LOAD TO FLOYD
 
 class_index = 0
-
-trainval_id_type_list = get_id_type_list_for_class(class_index)
+trainval_id_type_list = get_id_type_list_for_class(class_index, 'Train_tif')
 
 ### ADD GENERATED IMAGES
 from glob import glob
 from data_utils import GENERATED_DATA, to_set, get_label
 
-gen_train_jpg_files = glob(os.path.join(GENERATED_DATA, "train", "jpg", "*.jpg"))
-gen_train_jpg_ids = [s[len(os.path.join(GENERATED_DATA, "train", "jpg"))+1+len('gen_train_'):-4] for s in gen_train_jpg_files]
-gen_id_type_list = [(image_id, "Generated_Train_jpg") for image_id in gen_train_jpg_ids]
-class_index_gen_train_jpg_ids = [id_type for id_type in gen_train_jpg_ids if np.sum(get_label(*gen_id_type_list[0], class_index=class_index)) > 0]
-class_index_gen_id_type_list = [(image_id, "Generated_Train_jpg") for image_id in class_index_gen_train_jpg_ids]
+gen_train_files = glob(os.path.join(GENERATED_DATA, "train", "tif", "*.tif"))
+gen_train_ids = [s[len(os.path.join(GENERATED_DATA, "train", "tif"))+1+len('gen_train_'):-4] for s in gen_train_files]
+gen_id_type_list = [(image_id, "Generated_Train_tif") for image_id in gen_train_ids]
+class_index_gen_train_ids = [id_type for id_type in gen_train_ids if np.sum(get_label(*gen_id_type_list[0], class_index=class_index)) > 0]
+class_index_gen_id_type_list = [(image_id, "Generated_Train_tif") for image_id in class_index_gen_train_ids]
 trainval_id_type_list = trainval_id_type_list + class_index_gen_id_type_list
 ### ADD GENERATED IMAGES
 
 
-# class_indices = list(equalized_data_classes.keys())
-# class_indices.remove(class_index)
-#
-# n_other_samples = int(len(trainval_id_type_list) * 1.0 / len(class_indices))
-#
-# for index in class_indices:
-#     id_type_list = np.array(get_id_type_list_for_class(index))
-#     id_type_list = list(to_set(id_type_list) - to_set(trainval_id_type_list))
-#     np.random.shuffle(id_type_list)
-#     trainval_id_type_list.extend(id_type_list[:n_other_samples])
+class_indices = list(equalized_data_classes.keys())
+class_indices.remove(class_index)
 
-print(len(trainval_id_type_list), len(to_set(trainval_id_type_list)))
+n_other_samples = int(len(trainval_id_type_list) * 1.0 / len(class_indices) / len(equalized_data_classes[class_index]))
+
+for index in class_indices:
+    id_type_list = np.array(get_id_type_list_for_class(index, 'Train_tif'))
+    id_type_list = list(to_set(id_type_list) - to_set(trainval_id_type_list))
+    np.random.shuffle(id_type_list)
+    trainval_id_type_list.extend(id_type_list[:n_other_samples])
 
 
 params = {
     'seed': seed,
 
-    'xy_provider': image_class_labels_provider,
+    'xy_provider': tif_image_label_provider,
 
-    'network': get_squeezenet21_rare_tags,
-    'network_kwargs': {
-        'input_shape': (256, 256, 3),
-        'weights': 'imagenet'
-    },
-    'n_classes': len(equalized_data_classes[class_index]),
-    'image_size': (256, 256),
-
-    'loss': lambda Y_true, Y_pred: binary_crossentropy_with_false_negatives(Y_true, Y_pred, a=1.0),
-    'nb_epochs': 50,    # !!! CHECK BEFORE LOAD TO FLOYD
-    'batch_size': 32,  # !!! CHECK BEFORE LOAD TO FLOYD
+    'network': get_squeezenet_on_tif,
+    'optimizer': 'adadelta',
+    'loss': 'binary_crossentropy', # binary_crossentropy_with_false_negatives,
+    'nb_epochs': 25,    # !!! CHECK BEFORE LOAD TO FLOYD
+    'batch_size': 24,  # !!! CHECK BEFORE LOAD TO FLOYD
 
     'normalize_data': True,
-    'normalization': 'vgg',
+    'normalization': '',
 
-    'train_seq': get_basic_imgaug_seq,
+    'image_size': (256, 256),
 
-    'optimizer': 'adam',
+    'class_index': class_index,
 
     # Learning rate scheduler
     'lr_kwargs': {
-        'lr': 0.01,
+        'lr': 1.0,
         'a': 0.95,
         'init_epoch': 0
     },
@@ -116,28 +104,28 @@ params = {
     'on_plateau_kwargs': {
         'monitor': 'val_loss',
         'factor': 0.1,
-        'patience': 2,
+        'patience': 3,
         'verbose': 1
     },
 
     'cache': cache,
 
-    'class_index': class_index,
-    # 'pretrained_model': 'load_best',
-    # 'pretrained_model': os.path.join(GENERATED_DATA, "resources", ""),
-    # 'pretrained_model_template': os.path.join(RESOURCES_PATH,
-    #                                           "SqueezeNet21_all_classes_fold={fold_index}_seed=2017_40_val_loss=0.1216_val_precision=0.9153_val_recall=0.8670.h5"),
+#      'pretrained_model': 'load_best',
+#     'pretrained_model': os.path.join(GENERATED_DATA, "weights", ""),
 
     'output_path': OUTPUT_PATH,
 }
 
-params['save_prefix_template'] = '{cnn_name}_class=%i_fold={fold_index}_seed=%i' % (params['class_index'], params['seed'])
+params['save_prefix_template'] = '{cnn_name}_tif_class=%i_fold={fold_index}_seed=%i' % (class_index, params['seed'])
+params['input_shape'] = params['image_size'] + (7,)
+params['n_classes'] = len(equalized_data_classes[class_index]) + 1
+
 
 # Start CV
 
 n_folds = 5
 val_fold_index = 0
-val_fold_indices = [0, ]  # !!! CHECK BEFORE LOAD TO FLOYD
+val_fold_indices = []  # !!! CHECK BEFORE LOAD TO FLOYD
 hists = []
 
 kf = KFold(n_splits=n_folds)
@@ -150,26 +138,19 @@ for train_index, test_index in kf.split(trainval_id_type_list):
             val_fold_index += 1
             continue
 
-    params['samples_per_epoch'] = 1 * len(train_id_type_list)
-    params['nb_val_samples'] = int(1.0 * len(val_id_type_list))
-
     val_fold_index += 1
     print("\n\n ---- Validation fold index: ", val_fold_index, "/", n_folds)
 
     print(datetime.now(), len(train_id_type_list), len(val_id_type_list))
     assert len(to_set(train_id_type_list) & to_set(val_id_type_list)) == 0, "WTF"
 
-    cnn = params['network'](lr=params['lr_kwargs']['lr'], **params, **params['network_kwargs'])
-    params['save_prefix'] = params['save_prefix_template'].format(cnn_name=cnn.name, fold_index=val_fold_index-1)
+    weights = None if 'pretrained_model' in params else None
+    cnn = params['network'](lr=params['lr_kwargs']['lr'], weights=weights, **params)
+    params['save_prefix'] = params['save_prefix_template'].format(cnn_name=cnn.name, fold_index=val_fold_index - 1)
     print("\n {} - Loaded {} model ...".format(datetime.now(), cnn.name))
 
     if 'pretrained_model' in params:
         load_pretrained_model(cnn, **params)
-    elif 'pretrained_model_template' in params:
-        params['pretrained_model'] = params['pretrained_model_template'].format(fold_index=(val_fold_index-1) % 3)
-        print((val_fold_index-1) % 3)
-        print(params['pretrained_model'])
-        load_pretrained_model(cnn, by_name=True, **params)
 
     print("\n {} - Start training ...".format(datetime.now()))
     h = train(cnn, train_id_type_list, val_id_type_list, **params)
