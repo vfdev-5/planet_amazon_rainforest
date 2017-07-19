@@ -42,8 +42,8 @@ def get_train_imgaug_seq(seed):
         "random_state": seed
     }
     train_seq = iaa.Sequential([
-        iaa.Sometimes(0.45, iaa.Sharpen(alpha=0.9, lightness=(0.5, 1.15), **determinist), **determinist),
-        iaa.Sometimes(0.45, iaa.ContrastNormalization(alpha=(0.75, 1.15), **determinist), **determinist),
+#        iaa.Sometimes(0.45, iaa.Sharpen(alpha=0.9, lightness=(0.5, 1.15), **determinist), **determinist),
+#        iaa.Sometimes(0.45, iaa.ContrastNormalization(alpha=(0.75, 1.15), **determinist), **determinist),
         # iaa.Sometimes(0.5, iaa.AdditiveGaussianNoise(scale=(0, 0.01 * 255),
         #                                              per_channel=True, **determinist), **determinist),
         iaa.Affine(translate_px=(-25, 25),
@@ -298,7 +298,7 @@ def classification_train(model,
     weights_filename += ".h5"
 
     model_checkpoint = ModelCheckpoint(weights_filename, monitor='val_loss',
-                                       save_best_only=False, save_weights_only=False)
+                                       save_best_only=True, save_weights_only=False)
     now = datetime.now()
     info_filename = os.path.join(weights_path,
                                  'training_%s_%s.info' % (save_prefix, str(now.strftime("%Y-%m-%d-%H-%M"))))
