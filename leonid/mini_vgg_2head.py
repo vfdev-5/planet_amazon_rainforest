@@ -46,6 +46,8 @@ from sklearn.model_selection import StratifiedKFold
 import tensorflow as tf
 import cv2
 import bcolz
+bcolz.blosc_set_nthreads(4)
+bcolz.numexpr.set_num_threads(4)
 #from joblib import Parallel, delayed
 import image_ml_ext #modified ImageDataGenerator
 
@@ -246,11 +248,11 @@ label_map, inv_label_map, Y = process_labels(labels_df)
 
 
 # Params
-input_size = 96
+input_size = 64
 input_channels = 3
 
-epochs = 40
-batch_size = 128
+epochs = 100
+batch_size = 192
 learning_rate = 0.001
 lr_decay = 1e-4
 
@@ -272,23 +274,37 @@ train_folds, valid_folds = stratified_kfold_sampling(Y, n_splits= n_folds,
 
 gc.collect()
 
-if os.path.isfile('train_array_{}'.format(input_size) + '.dat'):
-    print("loading data in memory from bcolz file "+ 'train_array_{}'.format(input_size) + '.dat')
-    train_array = load_array('train_array_{}'.format(input_size) + '.dat')
+fname = 'train_array_{}'.format(input_size) + '.dat'
+if os.path.exists(fname): #os.path.isdir
+    print("loading data in memory from bcolz dircetory "+ fname)
+    train_array = load_array(fname)
 else:
-    train_array =[]
+    print("try to create bcolz directory "+ 'train_array_{}'.format(input_size) + '.dat')
+#    train_array =[]
+#    for f in tqdm(labels_df['image_name'].values, miniters=1000):
+#        img = cv2.resize(cv2.imread(
+#                os.path.join(TRAIN_DATA, 'jpg', '{}.jpg'.format(f))
+#                                   ), (input_size, input_size))
+#        train_array.append(img)
+#    
+#    train_array = np.array(train_array, np.float32)
+#    
+#    save_array('train_array_{}'.format(input_size) + '.dat', train_array)
+#########
+    c =[]
     for f in tqdm(labels_df['image_name'].values, miniters=1000):
         img = cv2.resize(cv2.imread(
                 os.path.join(TRAIN_DATA, 'jpg', '{}.jpg'.format(f))
                                    ), (input_size, input_size))
-        train_array.append(img)
-    
-    train_array = np.array(train_array, np.float32)
-    
-    save_array('train_array_{}'.format(input_size) + '.dat', train_array)
+        c.append(img)
+        
+    c = np.array(c, np.float32)
+    train_array = bcolz.carray(c, rootdir=fname, mode='w', expectedlen=len(c))
+    train_array.flush()
+    del c
     gc.collect()
 
-
+sys.getsizeof(train_array)
 
 #train_gen = image_ml_ext.ImageDataGenerator()
 #valid_gen = image_ml_ext.ImageDataGenerator()
@@ -311,22 +327,36 @@ def getImageDataGenerator():
                 horizontal_flip=True,
                 vertical_flip=True,)
 
-def getMOImageDataGenerator(X, Y, batch_size, shuffle=True):
-    while 1:
-        if shuffle:
-            inx = np.random.permutation(X.shape[0])
-        else:
-            inx = range(0, X.shape[0])
-        genX = getImageDataGenerator().flow(X[inx], None, batch_size=batch_size, shuffle=False)
+#def getMOImageDataGenerator(X, Y, batch_size, shuffle=True):
+#    while 1:
+#        if shuffle:
+#            inx = np.random.permutation(X.shape[0])
+#        else:
+#            inx = range(0, X.shape[0])
+#        genX = getImageDataGenerator().flow(X[inx], None, batch_size=batch_size, shuffle=False)
+#
+#        for i in range(0, len(inx), batch_size):
+#            yield genX.next(), [y[inx[i:i+batch_size]] for y in Y]
 
-        for i in range(0, len(inx), batch_size):
-            yield genX.next(), [y[inx[i:i+batch_size]] for y in Y]
-			
-all_gen = getMOImageDataGenerator(
-    train_array, 
-    [Y[:,weather_labels_inx], 
-     Y[:,not_weather_labels_inx]],
-    batch_size, False)
+
+def getMOImageDataGenerator(imgGenerator, X, Y, batch_size, shuffle=True):
+   while 1:
+       if shuffle:
+           inx = np.random.permutation(X.shape[0])
+           genX = imgGenerator.flow(X[inx], None, batch_size=batch_size, shuffle=False)
+       else:
+           inx = range(0, X.shape[0])
+           genX = imgGenerator.flow(X, None, batch_size=batch_size, shuffle=False)
+
+       for i in range(0, len(inx), batch_size):
+           yield genX.next(), [y[inx[i:i+batch_size]] for y in Y]
+
+
+#all_gen = getMOImageDataGenerator(
+#    train_array, 
+#    [Y[:,weather_labels_inx], 
+#     Y[:,not_weather_labels_inx]],
+#    batch_size, False)
         
 #train_gen = getMOImageDataGenerator(
 #    train_array[train_folds[fold_inx]], 
@@ -364,13 +394,13 @@ for fold_inx in folds_to_use:
 #                 labels_df['image_name'].values[train_folds[fold_inx]],
 #                 train_jpeg_dir, True, input_size, input_size, dtype=np.float32)
 
-    train_gen = getMOImageDataGenerator(
+    train_gen = getMOImageDataGenerator(getImageDataGenerator(),
         train_array[train_folds[fold_inx]], 
         [Y[train_folds[fold_inx]][:,weather_labels_inx], 
          Y[train_folds[fold_inx]][:,not_weather_labels_inx]],
         batch_size)
     
-    valid_gen = getMOImageDataGenerator(
+    valid_gen = getMOImageDataGenerator(getImageDataGenerator(),
         train_array[valid_folds[fold_inx]], 
         [Y[valid_folds[fold_inx]][:,weather_labels_inx], 
          Y[valid_folds[fold_inx]][:,not_weather_labels_inx]],
