@@ -45,7 +45,7 @@ from sklearn.metrics import fbeta_score
 from sklearn.model_selection import StratifiedKFold
 import tensorflow as tf
 import cv2
-#import bcolz
+import bcolz
 #from joblib import Parallel, delayed
 import image_ml_ext #modified ImageDataGenerator
 
@@ -213,6 +213,18 @@ def stratified_kfold_sampling(Y, n_splits=10, num_classes=17, random_state=0):
     return np.array(train_folds), np.array(valid_folds)
 
 
+# Savling/loading arrays by bcolz
+def save_array(fname, arr):
+    c=bcolz.carray(arr, rootdir=fname, mode='w', expectedlen=len(arr))
+    c.flush()
+    del c
+    del arr
+    
+def load_array(fname, mode='r'):
+    return bcolz.open(fname, mode=mode)[:]
+
+def load_carray(fname, mode='r'):
+    return bcolz.open(fname, mode=mode)
 
 
 
@@ -257,25 +269,25 @@ train_folds, valid_folds = stratified_kfold_sampling(Y, n_splits= n_folds,
 
 #ml_dict = {os.path.join('jpg', '{}.jpg').format(i): l for i, l in zip(labels_df['image_name'], Y)}
 
-train_array =[]
-for f in tqdm(labels_df['image_name'].values, miniters=1000):
-    img = cv2.resize(cv2.imread(
-            os.path.join(TRAIN_DATA, 'jpg', '{}.jpg'.format(f))
-                               ), (input_size, input_size))
-    train_array.append(img)
-#    y_train.append(targets)
-#    img = cv2.flip(img, 0)  # flip vertically
-#    x_train.append(img)
-#    y_train.append(targets)
-#    img = cv2.flip(img, 1)  # flip horizontally
-#    x_train.append(img)
-#    y_train.append(targets)
-#    img = cv2.flip(img, 0)  # flip vertically
-#    x_train.append(img)
-#    y_train.append(targets)
 
-#y_train = np.array(y_train, np.uint8)
-train_array = np.array(train_array, np.float32)
+gc.collect()
+
+if os.path.isfile('train_array_{}'.format(input_size) + '.dat'):
+    print("loading data in memory from bcolz file "+ 'train_array_{}'.format(input_size) + '.dat')
+    train_array = load_array('train_array_{}'.format(input_size) + '.dat')
+else:
+    train_array =[]
+    for f in tqdm(labels_df['image_name'].values, miniters=1000):
+        img = cv2.resize(cv2.imread(
+                os.path.join(TRAIN_DATA, 'jpg', '{}.jpg'.format(f))
+                                   ), (input_size, input_size))
+        train_array.append(img)
+    
+    train_array = np.array(train_array, np.float32)
+    
+    save_array('train_array_{}'.format(input_size) + '.dat', train_array)
+    gc.collect()
+
 
 
 #train_gen = image_ml_ext.ImageDataGenerator()
@@ -410,6 +422,12 @@ for fold_inx in folds_to_use:
                       class_count) + 'fold{}'.format(fold_inx) + '.h5',
                                  save_best_only=True)]
     minivgg = get_mini_vgg_2head((input_size, input_size, input_channels))
+    if os.path.isfile(name + \
+                     '{}weights'.format((input_size, input_size, input_channels),
+                      class_count) + 'fold{}'.format(fold_inx) + '.h5'):
+        minivgg.load_weights(name + \
+                     '{}weights'.format((input_size, input_size, input_channels),
+                      class_count) + 'fold{}'.format(fold_inx) + '.h5')
     minivgg.fit_generator(
 #        train_batches,
         train_gen,
