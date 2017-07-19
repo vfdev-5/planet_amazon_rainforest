@@ -47,7 +47,7 @@ trainval_id_type_list = [(image_id, "Train_jpg") for image_id in train_jpg_ids]
 np.random.shuffle(trainval_id_type_list)
 print(len(trainval_id_type_list))
 
-cache = DataCache(10000)  # !!! CHECK BEFORE LOAD TO FLOYD
+cache = DataCache(5000)  # !!! CHECK BEFORE LOAD TO FLOYD
 
 params = {
     'seed': seed,
@@ -101,7 +101,7 @@ n_runs = 2
 n_folds = 3
 run_counter = 0
 cv_mean_scores = np.zeros((n_runs, n_folds))
-val_fold_indices = [1, 2]  # !!! CHECK BEFORE LOAD TO FLOYD
+val_fold_indices = []  # !!! CHECK BEFORE LOAD TO FLOYD
 
 params['pretrained_model'] = 'load_best'
 params['save_predictions'] = True
@@ -144,6 +144,6 @@ while run_counter < n_runs:
         f2, mae = validate(cnn, val_id_type_list, verbose=0, **params)
         cv_mean_scores[run_counter-1, val_fold_index-1] = f2
 
-        np.random.shuffle(_trainval_id_type_list)
+    np.random.shuffle(_trainval_id_type_list)
 
 print(cv_mean_scores)
