@@ -220,6 +220,6 @@ while run_counter < n_runs:
         f2, mae = validate(cnn, val_id_type_list, verbose=0, **params)
         cv_mean_scores[run_counter-1, val_fold_index-1] = f2
 
-        np.random.shuffle(_trainval_id_type_list)
+    np.random.shuffle(_trainval_id_type_list)
 
 print(cv_mean_scores)
