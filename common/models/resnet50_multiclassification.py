@@ -55,8 +55,8 @@ def get_resnet(input_shape, n_classes, **params):
         'res5a_branch2a', 'bn5a_branch2a', 'res5a_branch2b', 'bn5a_branch2b',
         'res5a_branch2c', 'res5a_branch1', 'bn5a_branch2c', 'bn5a_branch1',
         'res5b_branch2a', 'bn5b_branch2a', 'res5b_branch2b', 'bn5b_branch2b',
-        'res5b_branch2c', 'bn5b_branch2c', 
-        'res5c_branch2a', 'bn5c_branch2a', 'res5c_branch2b', 'bn5c_branch2b', 'res5c_branch2c', 'bn5c_branch2c',
+        'res5b_branch2c', 'bn5b_branch2c',
+        # 'res5c_branch2a', 'bn5c_branch2a', 'res5c_branch2b', 'bn5c_branch2b', 'res5c_branch2c', 'bn5c_branch2c',
     ]
 
     for layer in resnet.layers:
@@ -121,6 +121,12 @@ def get_resnet2(input_shape, n_classes, **params):
         'res4e_branch2b', 'bn4e_branch2b', 'res4e_branch2c', 'bn4e_branch2c',
         'res4f_branch2a', 'bn4f_branch2a', 'res4f_branch2b',
         'bn4f_branch2b', 'res4f_branch2c', 'bn4f_branch2c',
+
+        'res5a_branch2a', 'bn5a_branch2a', 'res5a_branch2b', 'bn5a_branch2b',
+        'res5a_branch2c', 'res5a_branch1', 'bn5a_branch2c', 'bn5a_branch1',
+        'res5b_branch2a', 'bn5b_branch2a', 'res5b_branch2b', 'bn5b_branch2b',
+        'res5b_branch2c', 'bn5b_branch2c',
+        'res5c_branch2a', 'bn5c_branch2a', 'res5c_branch2b', 'bn5c_branch2b', 'res5c_branch2c', 'bn5c_branch2c',
     ]
 
     for layer in resnet.layers:

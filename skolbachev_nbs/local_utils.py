@@ -19,8 +19,8 @@ from tqdm import tqdm
 import cv2
 
 WORK_DIR = os.path.abspath('..')
-NB_DIR = WORK_DIR + '/planet_understanding_the_amazon_from_space'
-DATA_DIR = NB_DIR + '/data'
+NB_DIR = WORK_DIR + '/skolbachev_nbs'
+DATA_DIR = NB_DIR + '/../input'
 BATCH_SIZE = 32
 
 # Scikit-learn imports
@@ -46,7 +46,7 @@ from keras.applications.resnet50 import ResNet50
 from keras.applications.inception_v3 import InceptionV3
 from keras.applications.xception import Xception
 sys.path.insert(0, WORK_DIR + '/keras_additional_models')
-from squeezenet import SqueezeNet
+#from squeezenet import SqueezeNet
 
 # Savling/loading arrays by bcolz
 def save_array(fname, arr):
