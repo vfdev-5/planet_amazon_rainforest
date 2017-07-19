@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore")
 try:
     if __file__: exit
 except NameError:
-    __file__ = 'scripts/train_mini_vgg_multilabel_classification_all_classes.py'
+    __file__ = 'scripts/train_mini_vgg_bn_2_multilabel_classification_all_classes.py'
 
 # Project
 project_common_path = os.path.dirname(__file__)
@@ -24,7 +24,7 @@ from data_utils import get_id_type_list_for_class, OUTPUT_PATH, GENERATED_DATA, 
 from training_utils import classification_train as train, classification_validate as validate
 from training_utils import exp_decay, step_decay
 
-from models.mini_vgg_multiclassification import get_mini_vgg_bn, get_mini_vgg
+from models.mini_vgg_multiclassification import get_mini_vgg_bn_2
 
 from sklearn.model_selection import KFold
 from data_utils import to_set, equalized_data_classes, unique_tags, train_jpg_ids, TRAIN_ENC_CL_CSV
@@ -35,7 +35,7 @@ from xy_providers import image_label_provider
 from models.keras_metrics import binary_crossentropy_with_false_negatives
 
 
-cnn = get_mini_vgg_bn(input_shape=(64, 64, 3), n_classes=17)
+cnn = get_mini_vgg_bn_2(input_shape=(128, 128, 3), n_classes=17)
 cnn.summary()
 
 # Setup configuration
@@ -54,24 +54,27 @@ params = {
 
     'xy_provider': image_label_provider,
 
-    'network': get_mini_vgg,
-    'optimizer': 'adam',
-    'loss': 'binary_crossentropy', # mae_with_false_negatives,
-    'nb_epochs': 30,    # !!! CHECK BEFORE LOAD TO FLOYD
-    'batch_size': 24,  # !!! CHECK BEFORE LOAD TO FLOYD
+    'network': get_mini_vgg_bn_2,
 
-    'normalize_data': False,
+    'loss': binary_crossentropy_with_false_negatives,
+    'nb_epochs': 30,    # !!! CHECK BEFORE LOAD TO FLOYD
+    'batch_size': 8,  # !!! CHECK BEFORE LOAD TO FLOYD
+
+    'normalize_data': True,
     'normalization': 'vgg',
 
-    'image_size': (64, 64),
+    'image_size': (128, 128),
 
+    'optimizer': 'adam',
     # Learning rate scheduler
     'lr_kwargs': {
-        'lr': 0.001,
+        'lr': 0.0001,
         'a': 0.95,
-        'init_epoch': 18
+        'init_epoch': 0
     },
     'lr_decay_f': exp_decay,
+
+    'EpochValidationCallback_rate': 5,
 
     # Reduce learning rate on plateau
     'on_plateau': True,
@@ -85,7 +88,7 @@ params = {
     'cache': cache,
 
     # 'class_index': 0,
-    'pretrained_model': 'load_best',
+    # 'pretrained_model': 'load_best',
     # 'pretrained_model': os.path.join(GENERATED_DATA, "weights", ""),
 
     'output_path': OUTPUT_PATH,
@@ -143,7 +146,8 @@ cv_mean_scores = np.zeros((n_runs, n_folds))
 val_fold_indices = []  # !!! CHECK BEFORE LOAD TO FLOYD
 
 params['pretrained_model'] = 'load_best'
-
+params['save_predictions'] = True
+now = datetime.now()
 _trainval_id_type_list = np.array(trainval_id_type_list)
 
 while run_counter < n_runs:
@@ -172,6 +176,9 @@ while run_counter < n_runs:
         load_pretrained_model(cnn, **params)
 
         params['seed'] += run_counter - 1
+        params['save_predictions_id'] = params['save_prefix'] + \
+                                        '_run=%i' % run_counter + \
+                                        '_' + str(now.strftime("%Y-%m-%d-%H-%M"))
 
         f2, mae = validate(cnn, val_id_type_list, verbose=0, **params)
         cv_mean_scores[run_counter-1, val_fold_index-1] = f2
