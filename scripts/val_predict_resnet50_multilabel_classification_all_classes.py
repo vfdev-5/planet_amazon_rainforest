@@ -30,8 +30,8 @@ from xy_providers import image_label_provider
 from models.keras_metrics import binary_crossentropy_with_false_negatives
 
 
-cnn = get_resnet(input_shape=(224, 224, 3), n_classes=17)
-cnn.summary()
+# cnn = get_resnet(input_shape=(224, 224, 3), n_classes=17)
+# cnn.summary()
 
 # Setup configuration
 
@@ -42,7 +42,7 @@ trainval_id_type_list = [(image_id, "Train_jpg") for image_id in train_jpg_ids]
 np.random.shuffle(trainval_id_type_list)
 print(len(trainval_id_type_list))
 
-cache = DataCache(10000)  # !!! CHECK BEFORE LOAD TO FLOYD
+cache = DataCache(5000)  # !!! CHECK BEFORE LOAD TO FLOYD
 
 params = {
     'seed': seed,
@@ -50,6 +50,7 @@ params = {
     'xy_provider': image_label_provider,
 
     'network': get_resnet,
+    'weights': None,
     'optimizer': '',
     'loss': binary_crossentropy_with_false_negatives, # 'binary_crossentropy', # mae_with_false_negatives,
     'nb_epochs': 11,    # !!! CHECK BEFORE LOAD TO FLOYD
@@ -97,7 +98,7 @@ n_runs = 1
 n_folds = 5
 run_counter = 0
 cv_mean_scores = np.zeros((n_runs, n_folds))
-val_fold_indices = [3, 4]  # !!! CHECK BEFORE LOAD TO FLOYD
+val_fold_indices = []  # !!! CHECK BEFORE LOAD TO FLOYD
 
 params['pretrained_model'] = 'load_best'
 params['save_predictions'] = True
@@ -123,7 +124,9 @@ while run_counter < n_runs:
         print(len(train_id_type_list), len(val_id_type_list))
         assert len(to_set(train_id_type_list) & to_set(val_id_type_list)) == 0, "WTF"
 
-        cnn = params['network'](input_shape=params['input_shape'], n_classes=params['n_classes'])
+        cnn = params['network'](input_shape=params['input_shape'],
+                                n_classes=params['n_classes'],
+                                weights=params['weights'])
         params['save_prefix'] = params['save_prefix_template'].format(cnn_name=cnn.name, fold_index=val_fold_index-1)
         print("\n {} - Loaded {} model ...".format(datetime.now(), cnn.name))
 
@@ -137,6 +140,6 @@ while run_counter < n_runs:
         f2, mae = validate(cnn, val_id_type_list, verbose=0, **params)
         cv_mean_scores[run_counter-1, val_fold_index-1] = f2
 
-        np.random.shuffle(_trainval_id_type_list)
+    np.random.shuffle(_trainval_id_type_list)
 
 print(cv_mean_scores)
