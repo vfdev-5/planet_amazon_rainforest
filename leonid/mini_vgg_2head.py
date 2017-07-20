@@ -252,7 +252,7 @@ input_size = 64
 input_channels = 3
 
 epochs = 100
-batch_size = 192
+batch_size = 384
 learning_rate = 0.001
 lr_decay = 1e-4
 
@@ -309,7 +309,7 @@ sys.getsizeof(train_array)
 #train_gen = image_ml_ext.ImageDataGenerator()
 #valid_gen = image_ml_ext.ImageDataGenerator()
 
-folds_to_use = [4]
+folds_to_use = [4,0,1,2,3]
 class_count = 17
 
 weather_labels = ['clear', 'cloudy', 'haze', 'partly_cloudy']
@@ -469,5 +469,6 @@ for fold_inx in folds_to_use:
         callbacks = callbacks,
         max_q_size = 2
     )
+    gc.collect()
 
 
