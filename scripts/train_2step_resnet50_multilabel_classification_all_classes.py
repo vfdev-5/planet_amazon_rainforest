@@ -43,7 +43,7 @@ trainval_id_type_list = [(image_id, "Train_jpg") for image_id in train_jpg_ids]
 np.random.shuffle(trainval_id_type_list)
 print(len(trainval_id_type_list))
 
-cache = DataCache(11000)  # !!! CHECK BEFORE LOAD TO FLOYD
+cache = DataCache(12000)  # !!! CHECK BEFORE LOAD TO FLOYD
 
 params = {
     'seed': seed,
@@ -54,7 +54,7 @@ params = {
     'optimizer': 'adam',
     'loss': binary_crossentropy_with_false_negatives, # 'binary_crossentropy', # mae_with_false_negatives,
     'nb_epochs': 11,    # !!! CHECK BEFORE LOAD TO FLOYD
-    'batch_size': 96,  # !!! CHECK BEFORE LOAD TO FLOYD
+    'batch_size': 64,  # !!! CHECK BEFORE LOAD TO FLOYD
 
     'normalize_data': True,
     'normalization': 'vgg',
@@ -65,7 +65,7 @@ params = {
     'lr_kwargs': {
         'lr': 0.0000051,
         'a': 0.95,
-        'init_epoch': 0
+        'init_epoch': 1
     },
     'lr_decay_f': exp_decay,
 
@@ -176,6 +176,6 @@ while run_counter < n_runs:
         f2, mae = validate(cnn, val_id_type_list, verbose=0, **params)
         cv_mean_scores[run_counter-1, val_fold_index-1] = f2
 
-    np.random.shuffle(_trainval_id_type_list)
+        np.random.shuffle(_trainval_id_type_list)
 
 print(cv_mean_scores)
