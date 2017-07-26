@@ -25,7 +25,7 @@ if not FILE_FOLDER in sys.path:
 import numpy as np  # linear algebra
 import pandas as pd  # data processing, CSV file I/O (e.g. pd.read_csv)
 
-from keras.models import Sequential, Model
+from keras.models import Sequential, Model, load_model
 from keras.layers import Input, Conv2D, BatchNormalization, MaxPooling2D
 from keras.layers import Activation, Dropout, Flatten, Dense
 from keras.layers import AveragePooling2D, GlobalAveragePooling2D, GlobalMaxPooling2D
@@ -120,8 +120,8 @@ def get_mini_vgg_2head(input_shape, **kwargs):
     """
     lr = 0.01 if 'lr' not in kwargs else kwargs['lr']
     lr_decay = 0.001 if 'lr_decay' not in kwargs else kwargs['lr_decay']
-    loss = 'binary_crossentropy' if 'loss' not in kwargs else kwargs['loss']
-    final_activation = 'sigmoid'
+    loss = {'common_rare': 'binary_crossentropy', 'weather': 'categorical_crossentropy'} if 'loss' not in kwargs else kwargs['loss']
+#    final_activation = 'sigmoid'
 
     def _conv2d(input_layer, n_filters, padding='same', s_id=''):
         x = Conv2D(n_filters, kernel_size=(2, 2), padding=padding,
@@ -148,14 +148,14 @@ def get_mini_vgg_2head(input_shape, **kwargs):
 #    x = Dropout(0.5)(x)
 #    outputs = Dense(n_classes, activation=final_activation, name='tags')(x)
 
-    x = BatchNormalization(name='batch_normalization_2')(x)
-    
+    x = BatchNormalization()(x)
+
     xw = AveragePooling2D(name='average_pooling2d_1')(x)
     xw = Conv2D(256, (3, 3), padding='same', activation='relu')(xw)
     xw = Conv2D(4, (3, 3), padding='same')(xw)
     xw = GlobalAveragePooling2D()(xw)
     xw_output = Activation('softmax', name='weather')(xw)
-    
+
     xnw = MaxPooling2D(name='max_pooling2d_1')(x)
     xnw = Conv2D(256, (3, 3), padding='same', activation='relu')(xnw)
     xnw = Conv2D(13, (3, 3), padding='same')(xnw)
@@ -221,7 +221,7 @@ def save_array(fname, arr):
     c.flush()
     del c
     del arr
-    
+
 def load_array(fname, mode='r'):
     return bcolz.open(fname, mode=mode)[:]
 
@@ -276,7 +276,7 @@ gc.collect()
 
 fname = 'train_array_{}'.format(input_size) + '.dat'
 if os.path.exists(fname): #os.path.isdir
-    print("loading data in memory from bcolz dircetory "+ fname)
+    print("loading data in memory from bcolz directory "+ fname)
     train_array = load_array(fname)
 else:
     print("try to create bcolz directory "+ 'train_array_{}'.format(input_size) + '.dat')
@@ -286,9 +286,9 @@ else:
 #                os.path.join(TRAIN_DATA, 'jpg', '{}.jpg'.format(f))
 #                                   ), (input_size, input_size))
 #        train_array.append(img)
-#    
+#
 #    train_array = np.array(train_array, np.float32)
-#    
+#
 #    save_array('train_array_{}'.format(input_size) + '.dat', train_array)
 #########
     c =[]
@@ -297,7 +297,7 @@ else:
                 os.path.join(TRAIN_DATA, 'jpg', '{}.jpg'.format(f))
                                    ), (input_size, input_size))
         c.append(img)
-        
+
     c = np.array(c, np.float32)
     train_array = bcolz.carray(c, rootdir=fname, mode='w', expectedlen=len(c))
     train_array.flush()
@@ -317,7 +317,7 @@ weather_labels_inx = [label_map.get(label) for label in weather_labels]
 not_weather_labels_inx = [i for i in range(0, class_count) if i not in weather_labels_inx]
 
 
-#[Y[0:5,weather_labels_inx], 
+#[Y[0:5,weather_labels_inx],
 #     Y[0:5,not_weather_labels_inx]]
 #
 
@@ -353,20 +353,20 @@ def getMOImageDataGenerator(imgGenerator, X, Y, batch_size, shuffle=True):
 
 
 #all_gen = getMOImageDataGenerator(
-#    train_array, 
-#    [Y[:,weather_labels_inx], 
+#    train_array,
+#    [Y[:,weather_labels_inx],
 #     Y[:,not_weather_labels_inx]],
 #    batch_size, False)
-        
+
 #train_gen = getMOImageDataGenerator(
-#    train_array[train_folds[fold_inx]], 
-#    [Y[train_folds[fold_inx]][:,weather_labels_inx], 
+#    train_array[train_folds[fold_inx]],
+#    [Y[train_folds[fold_inx]][:,weather_labels_inx],
 #     Y[train_folds[fold_inx]][:,not_weather_labels_inx]],
 #    batch_size)
 #
 #valid_gen = getMOImageDataGenerator(
-#    train_array[valid_folds[fold_inx]], 
-#    [Y[valid_folds[fold_inx]][:,weather_labels_inx], 
+#    train_array[valid_folds[fold_inx]],
+#    [Y[valid_folds[fold_inx]][:,weather_labels_inx],
 #     Y[valid_folds[fold_inx]][:,not_weather_labels_inx]],
 #    batch_size, False)
 
@@ -375,7 +375,7 @@ def getMOImageDataGenerator(imgGenerator, X, Y, batch_size, shuffle=True):
 #train_gen = getImageDataGenerator()
 #valid_gen = getImageDataGenerator()
 
-#tst = [Y[train_folds[fold_inx]][:,weather_labels_inx], 
+#tst = [Y[train_folds[fold_inx]][:,weather_labels_inx],
 #                    Y[train_folds[fold_inx]][:,not_weather_labels_inx]]
 #
 #fold_inx = 4
@@ -383,7 +383,7 @@ def getMOImageDataGenerator(imgGenerator, X, Y, batch_size, shuffle=True):
 #tst = np.hstack((Y[train_folds[fold_inx]][:,weather_labels_inx], Y[train_folds[fold_inx]][:,not_weather_labels_inx]))
 #
 #
-#tst = [Y[train_folds[fold_inx]][:,weather_labels_inx], 
+#tst = [Y[train_folds[fold_inx]][:,weather_labels_inx],
 #                    Y[train_folds[fold_inx]][:,not_weather_labels_inx]]
 
 
@@ -395,14 +395,14 @@ for fold_inx in folds_to_use:
 #                 train_jpeg_dir, True, input_size, input_size, dtype=np.float32)
 
     train_gen = getMOImageDataGenerator(getImageDataGenerator(),
-        train_array[train_folds[fold_inx]], 
-        [Y[train_folds[fold_inx]][:,weather_labels_inx], 
+        train_array[train_folds[fold_inx]],
+        [Y[train_folds[fold_inx]][:,weather_labels_inx],
          Y[train_folds[fold_inx]][:,not_weather_labels_inx]],
         batch_size)
-    
+
     valid_gen = getMOImageDataGenerator(getImageDataGenerator(),
-        train_array[valid_folds[fold_inx]], 
-        [Y[valid_folds[fold_inx]][:,weather_labels_inx], 
+        train_array[valid_folds[fold_inx]],
+        [Y[valid_folds[fold_inx]][:,weather_labels_inx],
          Y[valid_folds[fold_inx]][:,not_weather_labels_inx]],
         batch_size, False)
 
@@ -410,7 +410,7 @@ for fold_inx in folds_to_use:
     train_steps = len(train_folds[fold_inx]) // batch_size + 1
 #    train_ml_dict = {os.path.join('jpg', '{}.jpg').format(i): l for i, l in \
 #               zip(labels_df['image_name'].values[train_folds[fold_inx]], \
-#                   [Y[train_folds[fold_inx]][:,weather_labels_inx], 
+#                   [Y[train_folds[fold_inx]][:,weather_labels_inx],
 #                    Y[train_folds[fold_inx]][:,not_weather_labels_inx]]
 ##                    Y[train_folds[fold_inx]]
 #                   )}
@@ -422,8 +422,8 @@ for fold_inx in folds_to_use:
 #                                  batch_size = batch_size,
 #                                  seed = random_seed)
 #    train_batches = train_gen.flow(
-#            labels_df['image_name'].values[train_folds[fold_inx]], 
-#            [Y[train_folds[fold_inx]][:,weather_labels_inx], 
+#            labels_df['image_name'].values[train_folds[fold_inx]],
+#            [Y[train_folds[fold_inx]][:,weather_labels_inx],
 #             Y[train_folds[fold_inx]][:,not_weather_labels_inx]],
 #                                  batch_size = batch_size,
 #                                  seed = random_seed)
@@ -431,7 +431,7 @@ for fold_inx in folds_to_use:
     valid_steps = len(valid_folds[fold_inx]) // batch_size + 1
 #    valid_ml_dict = {os.path.join('jpg', '{}.jpg').format(i): l for i, l in \
 #               zip(labels_df['image_name'].values[valid_folds[fold_inx]], \
-#                    [Y[valid_folds[fold_inx]][:,weather_labels_inx], 
+#                    [Y[valid_folds[fold_inx]][:,weather_labels_inx],
 #                     Y[valid_folds[fold_inx]][:,not_weather_labels_inx]],
 ##                   Y[valid_folds[fold_inx]]
 #                   )}
@@ -471,4 +471,44 @@ for fold_inx in folds_to_use:
     )
     gc.collect()
 
+# validation set predictions
+prediction = []
+for fold_inx in folds_to_use:
+    if os.path.isfile(name + \
+                 '{}weights'.format((input_size, input_size, input_channels),
+                  class_count) + 'fold{}'.format(fold_inx) + '.h5'):
+        minivgg = get_mini_vgg_2head((input_size, input_size, input_channels))
+        minivgg.load_weights(name + \
+                     '{}weights'.format((input_size, input_size, input_channels),
+                      class_count) + 'fold{}'.format(fold_inx) + '.h5')
 
+        current_prediction = minivgg.predict(train_array[valid_folds[fold_inx]], batch_size=batch_size, verbose=1)
+        prediction.append(np.hstack(current_prediction))
+
+################################
+
+def fbeta(true_label, prediction):
+   return fbeta_score(true_label, prediction, beta=2, average='samples')
+
+def get_optimal_threshhold(true_label, prediction, iterations = 1000):
+    best_threshhold = [0.0]*17
+    for t in range(17):
+        best_fbeta = 0
+        temp_threshhold = best_threshhold
+        for i in range(iterations):
+            temp_value = i / float(iterations)
+            temp_threshhold[t] = temp_value
+            temp_fbeta = fbeta(true_label, prediction > temp_threshhold)
+            if  temp_fbeta > best_fbeta:
+                best_fbeta = temp_fbeta
+                best_threshhold[t] = temp_value
+    return best_threshhold
+
+start = time.time()
+thresholds = get_optimal_threshhold(Y[valid_folds[fold_inx]], prediction[0])
+print(time.time() - start)
+
+fbeta(Y[valid_folds[fold_inx]],
+      np.array(np.array(prediction[0]) > thresholds, np.uint8))
+
+##############################################
